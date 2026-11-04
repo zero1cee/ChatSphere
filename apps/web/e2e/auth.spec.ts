@@ -40,7 +40,8 @@ test('register, verify email, sign in, and sign out', async ({ page, request }) 
   await page.getByRole('link', { name: 'Continue to ChatSphere' }).click();
 
   await expect(page).toHaveURL(/\/chats/);
-  await expect(page.getByRole('heading', { name: /Welcome, E2E/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pick a conversation.' })).toBeVisible();
+  await expect(page.getByText('E2E Tester').first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login/);
@@ -50,5 +51,5 @@ test('register, verify email, sign in, and sign out', async ({ page, request }) 
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(/\/chats/);
-  await expect(page.getByRole('heading', { name: /Welcome, E2E/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pick a conversation.' })).toBeVisible();
 });

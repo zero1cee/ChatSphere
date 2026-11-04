@@ -8,10 +8,10 @@ This is a portfolio project built as a production-style modular monolith — not
 app. It is being built in verified milestones, with the architecture and trade-offs documented as
 it grows.
 
-> **Status: Phase 3 — authentication.** Registration, email verification, login, refresh rotation,
-> logout, password reset, protected routes, and the first test suites are implemented and verified.
-> Conversations and real-time messaging are next. See the
-> [Phase 3 verification log](docs/phase-3-authentication.md) for the commands and actual results.
+> **Status: Phase 4 — users & conversations.** Authentication, user search, profiles, direct
+> conversations, groups, roles, and membership management are implemented and verified. Real-time
+> messaging is next. See the [Phase 4 verification log](docs/phase-4-conversations.md) for the
+> commands and actual results.
 
 ## What works today
 
@@ -19,22 +19,27 @@ it grows.
 - **Authentication:** Argon2id password hashing, short-lived JWT access tokens, rotating refresh
   sessions with reuse detection, email verification, password reset, rate limits, and protected
   routes.
-- **Account shell:** an authenticated `/chats` workspace that verifies the session and email before
-  rendering.
+- **Users and profiles:** verified-user search, public profile cards, profile editing, and password
+  changes that revoke other sessions.
+- **Conversations:** direct chats enforced as one pair with a unique `directKey`; groups with owner,
+  admin, and member roles; add/remove members; ownership transfer; per-user hide for direct chats;
+  owner-only group deletion.
+- **Workspace UI:** responsive conversation list, new-conversation flow (direct and group), group
+  details and permission-aware controls, settings, and empty states.
 - Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs,
   consistent JSON envelopes, and liveness/readiness checks.
-- PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens, and the
-  complete future messaging model.
+- PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens,
+  conversations, memberships, and the complete future messaging model.
 - Docker Compose for PostgreSQL, Redis, Mailpit, and an S3-compatible local store (S3Mock).
-- **Tests:** 23 Vitest unit/integration tests and a Playwright authentication E2E test.
+- **Tests:** 34 Vitest unit/integration tests and a Playwright authentication E2E test.
 - GitHub Actions CI for install, Prisma generation, migrations, linting, type checking, tests, and
   builds. Playwright E2E is local-only for now.
 
 ## Not built yet
 
-Conversations, message sending, Socket.IO, presence, delivery/read receipts, attachments,
-notifications, profile editing, Docker production images, and deployment. These arrive in later
-phases, each with its own tests.
+Message sending, Socket.IO, presence, delivery/read receipts, attachments and avatar uploads,
+notifications, Docker production images, and deployment. These arrive in later phases, each with its
+own tests.
 
 ## Screenshots
 
@@ -51,8 +56,12 @@ phases, each with its own tests.
   <img src="docs/screenshots/auth-register.png" alt="ChatSphere registration page" width="49%" />
 </p>
 <p>
-  <img src="docs/screenshots/chats-desktop.png" alt="Authenticated ChatSphere workspace" width="49%" />
-  <img src="docs/screenshots/chats-mobile.png" alt="Authenticated ChatSphere workspace on mobile" width="49%" />
+  <img src="docs/screenshots/chats-desktop.png" alt="ChatSphere group conversation and conversation list" width="49%" />
+  <img src="docs/screenshots/chats-mobile.png" alt="ChatSphere group conversation on mobile" width="49%" />
+</p>
+<p>
+  <img src="docs/screenshots/group-details.png" alt="ChatSphere group details and member roles" width="49%" />
+  <img src="docs/screenshots/settings.png" alt="ChatSphere profile and password settings" width="49%" />
 </p>
 
 ## Stack
@@ -202,7 +211,7 @@ Open:
 ## Testing
 
 ```bash
-pnpm test       # 23 Vitest tests: unit + auth integration
+pnpm test       # 34 Vitest tests: unit, auth, users, and conversations
 pnpm test:e2e   # Playwright: register → verify → sign in → sign out
 ```
 
@@ -218,7 +227,7 @@ pnpm --filter @chatsphere/web exec playwright install chromium
 ```
 
 The E2E test reads the real verification email through the Mailpit API, so Mailpit must be running.
-It is not yet wired into GitHub Actions; the CI job runs the 23 Vitest tests.
+It is not yet wired into GitHub Actions; the CI job runs the 34 Vitest tests.
 
 ## Technical decisions
 
@@ -234,6 +243,13 @@ It is not yet wired into GitHub Actions; the CI job runs the 23 Vitest tests.
   [docs/decisions/002-local-object-storage.md](docs/decisions/002-local-object-storage.md).
 - **Direct conversations are protected by a unique `directKey`**, and group ownership by a partial
   unique index. These are enforced in PostgreSQL, not only in application code.
+- **Conversation access is checked at the service layer.** Non-members receive `404`, not `403`, so
+  conversation existence is not leaked. Group role rules are enforced on every mutation, never in
+  the browser.
+- **Groups are capped at 50 members.** Ownership is unique at the database level; transferring it
+  demotes the existing owner and promotes the target in one transaction.
+- **Direct conversations are hidden per user, not deleted.** `ConversationMember.hiddenAt` keeps the
+  other participant's history intact and starting the chat again reopens the same conversation.
 - **Rate limits are in-memory for now.** They are correct for a single API instance; Redis-backed
   limits arrive with the scaling phase, before horizontal deployment is described as ready.
 
@@ -242,7 +258,8 @@ It is not yet wired into GitHub Actions; the CI job runs the 23 Vitest tests.
 The initial migration creates: `User`, `Conversation`, `ConversationMember`, `Message`,
 `MessageAttachment`, `MessageRead`, `MessageReaction`, `Notification`, `RefreshSession`, and
 `VerificationToken`. A second migration adds database-level constraints for direct conversation
-keys, group titles, one owner per conversation, and non-blank message content.
+keys, group titles, one owner per conversation, and non-blank message content. A third migration
+adds `pg_trgm` indexes for case-insensitive user search.
 
 ```bash
 pnpm db:migrate      # development
@@ -255,7 +272,7 @@ pnpm db:studio       # inspect data
 1. ~~Phase 1 — architecture plan~~ ✅
 2. ~~Phase 2 — workspace, infrastructure, schema, API health, web shell, CI~~ ✅
 3. ~~Phase 3 — authentication, verification, sessions, reset, protected routes, first tests~~ ✅
-4. Phase 4 — users, profiles, direct and group conversations
+4. ~~Phase 4 — users, profiles, direct and group conversations~~ ✅
 5. Phase 5 — real-time messaging with Socket.IO
 6. Phase 6 — typing, presence, receipts, attachments, notifications, message actions
 7. Phase 7 — full realtime/E2E suites and failure hardening

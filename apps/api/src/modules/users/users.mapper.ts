@@ -1,4 +1,4 @@
-import type { SelfUser } from '@chatsphere/shared';
+import type { PublicUser, SelfUser } from '@chatsphere/shared';
 
 interface UserRecord {
   id: string;
@@ -12,6 +12,15 @@ interface UserRecord {
   updatedAt: Date;
 }
 
+interface PublicUserRecord {
+  id: string;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  createdAt: Date;
+}
+
 export function toSelfUser(user: UserRecord): SelfUser {
   return {
     id: user.id,
@@ -23,5 +32,16 @@ export function toSelfUser(user: UserRecord): SelfUser {
     emailVerified: user.emailVerifiedAt !== null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
+  };
+}
+
+export function toPublicUser(user: PublicUserRecord): PublicUser {
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    createdAt: user.createdAt.toISOString(),
   };
 }

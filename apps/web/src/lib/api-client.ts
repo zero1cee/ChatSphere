@@ -138,6 +138,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (payload as ApiSuccess<T>).data;
 }
 
+export function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request<T>(path, options);
+}
+
 export function loginRequest(input: LoginInput): Promise<AuthSessionData> {
   return request<AuthSessionData>('/api/auth/login', {
     method: 'POST',

@@ -1,9 +1,8 @@
 /**
  * Shared API contracts.
  *
- * These types are intentionally transport-oriented: the web app and the API
- * agree on the shape of envelopes and simple DTOs. Business objects that need
- * runtime validation will live in `schemas/` once those features exist.
+ * Business objects that need runtime validation live in `schemas/`; transport
+ * DTOs live in `dto/`. Both the web app and the API import from this package.
  */
 
 export const APP_NAME = 'ChatSphere' as const;
@@ -36,3 +35,6 @@ export interface ReadinessData {
   };
   timestamp: string;
 }
+
+export * from './dto/auth.js';
+export * from './schemas/auth.js';

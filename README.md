@@ -8,27 +8,33 @@ This is a portfolio project built as a production-style modular monolith — not
 app. It is being built in verified milestones, with the architecture and trade-offs documented as
 it grows.
 
-> **Status: Phase 2 — foundation.** The web shell, API, database schema, local infrastructure, and
-> CI pipeline are running. Authentication is the next milestone. Nothing in this README claims
-> tests or features that do not exist yet. See
-> [the Phase 2 verification log](docs/phase-2-foundation.md) for the commands and actual results.
+> **Status: Phase 3 — authentication.** Registration, email verification, login, refresh rotation,
+> logout, password reset, protected routes, and the first test suites are implemented and verified.
+> Conversations and real-time messaging are next. See the
+> [Phase 3 verification log](docs/phase-3-authentication.md) for the commands and actual results.
 
 ## What works today
 
 - Original responsive landing page with light/dark themes and an accessible design system.
-- Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs, consistent
-  JSON envelopes, and liveness/readiness checks.
-- PostgreSQL 18 schema managed by Prisma 7, with the complete messaging data model and database
-  constraints applied through migrations.
+- **Authentication:** Argon2id password hashing, short-lived JWT access tokens, rotating refresh
+  sessions with reuse detection, email verification, password reset, rate limits, and protected
+  routes.
+- **Account shell:** an authenticated `/chats` workspace that verifies the session and email before
+  rendering.
+- Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs,
+  consistent JSON envelopes, and liveness/readiness checks.
+- PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens, and the
+  complete future messaging model.
 - Docker Compose for PostgreSQL, Redis, Mailpit, and an S3-compatible local store (S3Mock).
-- pnpm workspace with shared TypeScript contracts and Biome linting/formatting.
-- GitHub Actions CI skeleton: install, generate Prisma client, migrate, lint, typecheck, build.
+- **Tests:** 23 Vitest unit/integration tests and a Playwright authentication E2E test.
+- GitHub Actions CI for install, Prisma generation, migrations, linting, type checking, tests, and
+  builds. Playwright E2E is local-only for now.
 
 ## Not built yet
 
-Authentication, conversations, message sending, Socket.IO, presence, receipts, attachments,
-notifications, Playwright E2E tests, and deployment. These are the next phases and will be added
-with their tests before being described as complete.
+Conversations, message sending, Socket.IO, presence, delivery/read receipts, attachments,
+notifications, profile editing, Docker production images, and deployment. These arrive in later
+phases, each with its own tests.
 
 ## Screenshots
 
@@ -40,15 +46,26 @@ with their tests before being described as complete.
   <img src="docs/screenshots/landing-mobile.png" alt="ChatSphere landing page on a mobile viewport" width="280" />
 </p>
 
+<p>
+  <img src="docs/screenshots/auth-login.png" alt="ChatSphere sign-in page" width="49%" />
+  <img src="docs/screenshots/auth-register.png" alt="ChatSphere registration page" width="49%" />
+</p>
+<p>
+  <img src="docs/screenshots/chats-desktop.png" alt="Authenticated ChatSphere workspace" width="49%" />
+  <img src="docs/screenshots/chats-mobile.png" alt="Authenticated ChatSphere workspace on mobile" width="49%" />
+</p>
+
 ## Stack
 
 | Layer           | Choice                                                                                                  |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
 | Web             | Next.js 16.4.5 (App Router), React 19.3.1, TypeScript 5.9.3, Tailwind CSS 4.3.4, shadcn/ui, next-themes |
 | API             | Node.js 24, Express 5.3.0, TypeScript, Zod 4, pino, Helmet, express-rate-limit                          |
+| Auth            | Argon2id (`@node-rs/argon2`), `jose` JWT access tokens, rotating refresh sessions                       |
 | Data            | PostgreSQL 18.6, Prisma 7.10.1 with `@prisma/adapter-pg`                                                |
 | Realtime (next) | Socket.IO 4.8.4                                                                                         |
 | Local infra     | Docker Compose, Redis 8.10, Mailpit, Adobe S3Mock                                                       |
+| Testing         | Vitest 5, Supertest, Playwright 1.64                                                                    |
 | Tooling         | pnpm 12.16.1, Biome 2.6.5, GitHub Actions                                                               |
 
 Exact versions and the reasons for the important pins are in
@@ -65,18 +82,38 @@ Browser (Next.js) ── REST ─────► Express API ── Prisma ─�
                                      └── SMTP / Mailpit (verification and reset email)
 ```
 
-PostgreSQL is the source of truth for users, conversations, messages, and receipts. Redis will be
-introduced only when the core messaging workflow works and multi-instance delivery requires it.
+The browser keeps the access token in memory and the refresh token in an HttpOnly cookie. The API is
+the only authority on authentication and authorisation. PostgreSQL is the source of truth for users,
+conversations, messages, and receipts. Redis is introduced only when the core messaging workflow
+works and multi-instance delivery requires it.
+
+## Authentication design
+
+- Passwords are hashed with **Argon2id** using OWASP-recommended interactive parameters.
+- Access tokens are **15-minute HS256 JWTs**, held only in memory (Zustand), never in `localStorage`.
+- Refresh tokens are **30-day opaque secrets**, stored only as SHA-256 hashes in `RefreshSession`.
+  Every refresh rotates the token; reuse revokes the entire session family.
+- The refresh cookie is `HttpOnly`, `SameSite=Lax`, `Secure` in production, and scoped to
+  `/api/auth`.
+- Email addresses and usernames are stored lowercase. Verification and reset tokens are hashed,
+  single-use, and expiring.
+- Auth endpoints are rate-limited. Cookie-authenticated refresh/logout requests also check the
+  `Origin` header.
+- The browser serialises refresh calls with the Web Locks API to avoid multi-tab rotation races.
+- Unverified users can sign in but are redirected to `/verify-email` and cannot reach the app shell.
+
+See [docs/phase-3-authentication.md](docs/phase-3-authentication.md) for the endpoint list and the
+verified scenarios.
 
 ## Repository layout
 
 ```text
 chatsphere/
 ├── apps/
-│   ├── api/                 Express API + Prisma schema, migrations, generated client
-│   └── web/                 Next.js App Router frontend
-├── packages/shared/         Shared API types and (soon) Zod contracts
-├── docs/                    Decisions, screenshots, and operational notes
+│   ├── api/                 Express API, auth modules, Prisma schema/migrations, Vitest tests
+│   └── web/                 Next.js App Router frontend, Playwright E2E test
+├── packages/shared/         Shared Zod schemas, DTOs, and API types
+├── docs/                    Decisions, phase logs, screenshots, operational notes
 ├── docker-compose.yml       Local Postgres, Redis, Mailpit, S3Mock
 ├── biome.json               Lint + format configuration
 └── pnpm-workspace.yaml      Workspace and native build allow-list
@@ -88,12 +125,19 @@ chatsphere/
 
 - Node.js 24+
 - pnpm 12 via Corepack
-- Docker with Compose. On this Mac, the setup uses
-  [Colima](https://colima.run) instead of Docker Desktop.
+- Docker with Compose. On this Mac, the setup uses [Colima](https://colima.run) instead of Docker
+  Desktop.
 
 ```bash
 brew install colima docker docker-compose
 colima start --cpu 4 --memory 6 --disk 40 --vm-type vz
+```
+
+If `docker compose` is not found, expose Homebrew's compose plugin:
+
+```bash
+mkdir -p ~/.docker/cli-plugins
+ln -sf "$(brew --prefix)/bin/docker-compose" ~/.docker/cli-plugins/docker-compose
 ```
 
 ### First run
@@ -114,6 +158,9 @@ pnpm db:generate
 pnpm db:migrate
 pnpm dev
 ```
+
+Replace `JWT_ACCESS_SECRET` in `apps/api/.env` with a random value before using the stack outside
+local development. The verification and reset emails are delivered to Mailpit locally.
 
 Open:
 
@@ -143,12 +190,35 @@ Open:
 | `pnpm lint`        | Biome check (lint, format, imports)                            |
 | `pnpm format`      | Apply Biome safe fixes                                         |
 | `pnpm typecheck`   | Build shared contracts, then typecheck every package           |
+| `pnpm test`        | Run Vitest unit and integration tests                          |
+| `pnpm test:e2e`    | Run Playwright E2E against running dev servers                 |
 | `pnpm db:generate` | Generate the Prisma client                                     |
 | `pnpm db:migrate`  | Create/apply a development migration                           |
 | `pnpm db:deploy`   | Apply committed migrations (CI/production)                     |
 | `pnpm db:studio`   | Open Prisma Studio                                             |
 | `pnpm infra:up`    | Start local infrastructure                                     |
 | `pnpm infra:down`  | Stop local infrastructure                                      |
+
+## Testing
+
+```bash
+pnpm test       # 23 Vitest tests: unit + auth integration
+pnpm test:e2e   # Playwright: register → verify → sign in → sign out
+```
+
+`pnpm test` creates and migrates `chatsphere_test` automatically. Override the database with
+`TEST_DATABASE_URL` if your local credentials differ. The test mailer is mocked, so integration tests
+do not require Mailpit.
+
+Playwright runs against the running dev stack. Before running it:
+
+```bash
+pnpm dev                                            # in one terminal
+pnpm --filter @chatsphere/web exec playwright install chromium
+```
+
+The E2E test reads the real verification email through the Mailpit API, so Mailpit must be running.
+It is not yet wired into GitHub Actions; the CI job runs the 23 Vitest tests.
 
 ## Technical decisions
 
@@ -164,6 +234,8 @@ Open:
   [docs/decisions/002-local-object-storage.md](docs/decisions/002-local-object-storage.md).
 - **Direct conversations are protected by a unique `directKey`**, and group ownership by a partial
   unique index. These are enforced in PostgreSQL, not only in application code.
+- **Rate limits are in-memory for now.** They are correct for a single API instance; Redis-backed
+  limits arrive with the scaling phase, before horizontal deployment is described as ready.
 
 ## Database
 
@@ -178,21 +250,15 @@ pnpm db:deploy       # CI / production
 pnpm db:studio       # inspect data
 ```
 
-## Testing
-
-No automated tests exist yet. The CI workflow currently verifies install, Prisma generation,
-migrations, linting, type checking, and builds. Test suites arrive with Phase 3 and are not reported
-as passing until they are actually executed.
-
 ## Roadmap
 
 1. ~~Phase 1 — architecture plan~~ ✅
 2. ~~Phase 2 — workspace, infrastructure, schema, API health, web shell, CI~~ ✅
-3. Phase 3 — authentication (registration, verification, login, refresh, reset)
+3. ~~Phase 3 — authentication, verification, sessions, reset, protected routes, first tests~~ ✅
 4. Phase 4 — users, profiles, direct and group conversations
 5. Phase 5 — real-time messaging with Socket.IO
 6. Phase 6 — typing, presence, receipts, attachments, notifications, message actions
-7. Phase 7 — full unit/integration/realtime/E2E test suites
+7. Phase 7 — full realtime/E2E suites and failure hardening
 8. Phase 8 — Redis, Docker production images, deployment, documentation, screenshots
 
 ## License

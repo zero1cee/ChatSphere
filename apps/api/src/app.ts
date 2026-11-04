@@ -9,12 +9,15 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { authRouter } from './modules/auth/auth.routes.js';
 import { healthRouter } from './modules/system/health.routes.js';
+import { usersRouter } from './modules/users/users.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
 
   app.disable('x-powered-by');
+  app.set('trust proxy', env.TRUST_PROXY ? 1 : false);
 
   app.use(
     pinoHttp({
@@ -46,6 +49,8 @@ export function createApp(): express.Express {
   app.use(cookieParser());
 
   app.use('/api', healthRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

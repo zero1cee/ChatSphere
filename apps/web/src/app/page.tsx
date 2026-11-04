@@ -1,4 +1,5 @@
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 import { AppPreview } from '@/components/marketing/app-preview';
 import { FeatureGrid } from '@/components/marketing/feature-grid';
@@ -58,20 +59,17 @@ export default function HomePage() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="h-11 rounded-full px-5">
-                  <a href="#features">
-                    See what&apos;s inside
+                  <Link href="/register">
+                    Create your account
                     <ArrowRight aria-hidden="true" />
-                  </a>
+                  </Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
                   className="h-11 rounded-full border-border/90 px-5"
                 >
-                  <a href="#security">
-                    <ShieldCheck aria-hidden="true" />
-                    Read the security model
-                  </a>
+                  <a href="#features">See what&apos;s inside</a>
                 </Button>
               </div>
 
@@ -117,16 +115,16 @@ export default function HomePage() {
                 Less noise. More signal.
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/65">
-                The foundation is running on real PostgreSQL, real validation, and a real
-                architecture. Authentication and conversations are the next milestones.
+                Create an account, verify your email, and your workspace is ready. The conversation
+                layer is the next milestone.
               </p>
-              <a
-                href="#features"
+              <Link
+                href="/register"
                 className="mt-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Explore the product direction
+                Create your account
                 <ArrowRight className="size-4" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
         </section>

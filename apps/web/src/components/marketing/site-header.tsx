@@ -37,11 +37,17 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
+          <Link
+            href="/login"
+            className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Sign in
+          </Link>
           <Button asChild size="sm" className="hidden h-9 rounded-full px-4 sm:inline-flex">
-            <a href="#features">
-              Explore the build
+            <Link href="/register">
+              Create account
               <ArrowUpRight aria-hidden="true" />
-            </a>
+            </Link>
           </Button>
         </div>
       </div>

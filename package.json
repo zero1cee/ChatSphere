@@ -20,7 +20,9 @@
     "db:studio": "pnpm --filter @chatsphere/api db:studio",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
-    "infra:logs": "docker compose logs -f"
+    "infra:logs": "docker compose logs -f",
+    "test": "pnpm --filter @chatsphere/api test",
+    "test:e2e": "pnpm --filter @chatsphere/web test:e2e"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

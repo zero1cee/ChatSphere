@@ -3,16 +3,17 @@ import { cn } from '@/lib/utils';
 interface LogoProps {
   className?: string;
   markOnly?: boolean;
+  inverted?: boolean;
 }
 
-export function Logo({ className, markOnly = false }: LogoProps) {
+export function Logo({ className, markOnly = false, inverted = false }: LogoProps) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <svg
         viewBox="0 0 40 40"
         fill="none"
         aria-hidden="true"
-        className="size-8 shrink-0 text-primary"
+        className={cn('size-8 shrink-0', inverted ? 'text-white' : 'text-primary')}
       >
         <ellipse
           cx="20"
@@ -35,13 +36,23 @@ export function Logo({ className, markOnly = false }: LogoProps) {
           transform="rotate(38 20 20)"
         />
         <circle cx="20" cy="20" r="6.25" fill="currentColor" />
-        <circle cx="20" cy="20" r="2.25" className="fill-primary-foreground/80" />
+        <circle
+          cx="20"
+          cy="20"
+          r="2.25"
+          className={inverted ? 'fill-[#0b0e14]' : 'fill-primary-foreground/80'}
+        />
         <circle cx="33.4" cy="12.8" r="2" className="fill-presence-online" />
       </svg>
       {markOnly ? (
         <span className="sr-only">ChatSphere</span>
       ) : (
-        <span className="text-[1.05rem] font-semibold tracking-[-0.03em] text-foreground">
+        <span
+          className={cn(
+            'text-[1.05rem] font-semibold tracking-[-0.03em]',
+            inverted ? 'text-white' : 'text-foreground',
+          )}
+        >
           ChatSphere
         </span>
       )}

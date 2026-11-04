@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, typecheck, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -35,6 +35,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://chatsphere:chatsphere_ci_password@localhost:5432/chatsphere?schema=public
+      TEST_DATABASE_URL: postgresql://chatsphere:chatsphere_ci_password@localhost:5432/chatsphere_test?schema=public
       NEXT_TELEMETRY_DISABLED: 1
       CI: true
 
@@ -67,6 +68,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build

@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum NotificationType {
+  MESSAGE
+  GROUP_ADDED
+  GROUP_REMOVED
+  GROUP_ROLE_CHANGED
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(80)
+  username        String    @unique @db.VarChar(30)
+  email           String    @unique @db.VarChar(254)
+  passwordHash    String
+  avatarUrl       String?
+  bio             String?   @db.VarChar(280)
+  emailVerifiedAt DateTime?
+  lastSeenAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships        ConversationMember[]
+  messages           Message[]            @relation("MessageSender")
+  sessions           RefreshSession[]
+  verificationTokens VerificationToken[]
+  reads              MessageRead[]
+  reactions          MessageReaction[]
+  notifications      Notification[]
+  uploadedFiles      MessageAttachment[]  @relation("UploadedAttachments")
+}
+
+model Conversation {
+  id        String           @id @default(uuid()) @db.Uuid
+  type      ConversationType
+  title     String?          @db.VarChar(100)
+  avatarUrl String?
+  directKey String?          @unique @db.VarChar(73)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  members       ConversationMember[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@index([updatedAt])
+}
+
+model ConversationMember {
+  id                     String     @id @default(uuid()) @db.Uuid
+  conversationId         String     @db.Uuid
+  userId                 String     @db.Uuid
+  role                   MemberRole @default(MEMBER)
+  joinedAt               DateTime   @default(now())
+  lastReadMessageId      String?    @db.Uuid
+  lastReadAt             DateTime?
+  lastDeliveredMessageId String?    @db.Uuid
+  lastDeliveredAt        DateTime?
+  hiddenAt               DateTime?
+
+  conversation         Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadMessage      Message?     @relation("MemberLastRead", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+  lastDeliveredMessage Message?     @relation("MemberLastDelivered", fields: [lastDeliveredMessageId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, userId])
+  @@index([userId, hiddenAt])
+  @@index([lastReadMessageId])
+  @@index([lastDeliveredMessageId])
+}
+
+model Message {
+  id              String    @id @default(uuid()) @db.Uuid
+  conversationId  String    @db.Uuid
+  senderId        String    @db.Uuid
+  content         String?   @db.Text
+  clientMessageId String    @db.Uuid
+  replyToId       String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  editedAt        DateTime?
+  deletedAt       DateTime?
+
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  replyTo      Message?            @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]           @relation("MessageReplies")
+  attachments  MessageAttachment[]
+  reactions    MessageReaction[]
+  reads        MessageRead[]
+
+  lastReadByMembers      ConversationMember[] @relation("MemberLastRead")
+  lastDeliveredToMembers ConversationMember[] @relation("MemberLastDelivered")
+
+  @@unique([senderId, clientMessageId])
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([replyToId])
+}
+
+model MessageAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  messageId    String?  @db.Uuid
+  uploadedById String   @db.Uuid
+  storageKey   String   @unique @db.VarChar(512)
+  fileName     String   @db.VarChar(255)
+  mimeType     String   @db.VarChar(127)
+  fileSize     Int
+  createdAt    DateTime @default(now())
+
+  message    Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation("UploadedAttachments", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([messageId])
+  @@index([uploadedById, createdAt])
+}
+
+model MessageRead {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  emoji     String   @db.VarChar(32)
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+}
+
+model Notification {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @db.Uuid
+  type           NotificationType
+  payload        Json
+  conversationId String?          @db.Uuid
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([conversationId])
+}
+
+model RefreshSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  tokenHash  String   @unique @db.VarChar(64)
+  familyId   String   @db.Uuid
+  userAgent  String?  @db.VarChar(255)
+  ipHash     String?  @db.VarChar(64)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+model VerificationToken {
+  id        String                @id @default(uuid()) @db.Uuid
+  userId    String                @db.Uuid
+  type      VerificationTokenType
+  tokenHash String                @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}

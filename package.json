@@ -1,0 +1,30 @@
+{
+  "name": "chatsphere",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChatSphere \u2014 a real-time messaging platform built with Next.js, Express, Socket.IO, and PostgreSQL.",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @chatsphere/shared build && pnpm --parallel --filter @chatsphere/api --filter @chatsphere/web --filter @chatsphere/shared dev",
+    "build": "pnpm -r build",
+    "lint": "biome check .",
+    "typecheck": "pnpm --filter @chatsphere/shared build && pnpm -r typecheck",
+    "format": "biome check --write .",
+    "format:check": "biome format .",
+    "db:generate": "pnpm --filter @chatsphere/api db:generate",
+    "db:migrate": "pnpm --filter @chatsphere/api db:migrate",
+    "db:deploy": "pnpm --filter @chatsphere/api db:deploy",
+    "db:studio": "pnpm --filter @chatsphere/api db:studio",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "@biomejs/biome": "2.6.5"
+  }
+}

@@ -1,0 +1,41 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm blocks lifecycle scripts by default. These packages legitimately need
+# their install scripts (native binaries or generated Prisma artifacts).
+allowBuilds:
+  "@node-rs/argon2": true
+  "@prisma/engines": true
+  "@tailwindcss/oxide": true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
+  # Scarf is optional install-time telemetry; it is not needed.
+  "@scarf/scarf": false
+
+# Exact, recently published versions used by this project are explicitly
+# excluded from pnpm's minimum-release-age quarantine.
+minimumReleaseAgeExclude:
+  - "@next/env@16.4.5"
+  - "@next/swc-darwin-arm64@16.4.5"
+  - "@next/swc-darwin-x64@16.4.5"
+  - "@next/swc-linux-arm64-gnu@16.4.5"
+  - "@next/swc-linux-arm64-musl@16.4.5"
+  - "@next/swc-linux-x64-gnu@16.4.5"
+  - "@next/swc-linux-x64-musl@16.4.5"
+  - "@next/swc-win32-arm64-msvc@16.4.5"
+  - "@next/swc-win32-x64-msvc@16.4.5"
+  - next@16.4.5
+  - "@biomejs/biome@2.6.5"
+  - "@biomejs/cli-android-arm64@2.6.5"
+  - "@biomejs/cli-android-x64@2.6.5"
+  - "@biomejs/cli-darwin-arm64@2.6.5"
+  - "@biomejs/cli-darwin-x64@2.6.5"
+  - "@biomejs/cli-linux-arm64-musl@2.6.5"
+  - "@biomejs/cli-linux-arm64@2.6.5"
+  - "@biomejs/cli-linux-x64-musl@2.6.5"
+  - "@biomejs/cli-linux-x64@2.6.5"
+  - "@biomejs/cli-win32-arm64@2.6.5"
+  - "@biomejs/cli-win32-x64@2.6.5"

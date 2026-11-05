@@ -4,9 +4,11 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { prisma } from './lib/prisma.js';
+import { createSocketServer } from './realtime/io.js';
 
 const app = createApp();
 const server = createServer(app);
+const io = createSocketServer(server);
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
   logger.info({ signal }, 'Shutting down');
@@ -17,18 +19,14 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   }, 10_000);
   forceExit.unref();
 
-  server.close(async (error) => {
-    if (error) {
-      logger.error({ err: error }, 'HTTP server failed to close');
-    }
-
+  io.close(async () => {
     try {
       await prisma.$disconnect();
     } catch (disconnectError) {
       logger.error({ err: disconnectError }, 'Prisma disconnect failed');
     }
 
-    process.exit(error ? 1 : 0);
+    process.exit(0);
   });
 }
 

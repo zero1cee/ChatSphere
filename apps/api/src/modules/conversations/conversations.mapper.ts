@@ -3,6 +3,7 @@ import type {
   ConversationMemberDTO,
   ConversationType,
   MemberRole,
+  MessagePreviewDTO,
 } from '@chatsphere/shared';
 
 import { toPublicUser } from '../users/users.mapper.js';
@@ -32,6 +33,33 @@ interface ConversationRecord {
   createdAt: Date;
   updatedAt: Date;
   members: MemberRecord[];
+  messages: LastMessageRecord[];
+}
+
+interface LastMessageRecord {
+  id: string;
+  content: string | null;
+  createdAt: Date;
+  deletedAt: Date | null;
+  sender: {
+    id: string;
+    name: string;
+    username: string;
+  };
+}
+
+function toMessagePreview(message: LastMessageRecord): MessagePreviewDTO {
+  return {
+    id: message.id,
+    content: message.deletedAt ? null : message.content,
+    sender: {
+      id: message.sender.id,
+      name: message.sender.name,
+      username: message.sender.username,
+    },
+    createdAt: message.createdAt.toISOString(),
+    deletedAt: message.deletedAt?.toISOString() ?? null,
+  };
 }
 
 function toConversationMemberDTO(member: MemberRecord): ConversationMemberDTO {
@@ -75,5 +103,6 @@ export function toConversationDTO(conversation: ConversationRecord): Conversatio
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),
     members: members.map(toConversationMemberDTO),
+    lastMessage: conversation.messages[0] ? toMessagePreview(conversation.messages[0]) : null,
   };
 }

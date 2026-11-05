@@ -8,6 +8,7 @@ import type {
 } from '@chatsphere/shared';
 import { MAX_GROUP_MEMBERS } from '@chatsphere/shared';
 
+import type { Prisma } from '../../generated/prisma/client.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { isPrismaUniqueConstraintError } from '../../lib/prisma-errors.js';
@@ -29,9 +30,26 @@ const conversationInclude = {
         select: publicUserSelect,
       },
     },
-    orderBy: { joinedAt: 'asc' as const },
+    orderBy: { joinedAt: 'asc' },
   },
-} as const;
+  messages: {
+    take: 1,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      deletedAt: true,
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.ConversationInclude;
 
 export interface CreateConversationResult {
   conversation: ConversationDTO;

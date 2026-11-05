@@ -1,3 +1,4 @@
+import type { MessagePreviewDTO } from './messages.js';
 import type { PublicUser } from './users.js';
 
 export type ConversationType = 'DIRECT' | 'GROUP';
@@ -19,6 +20,7 @@ export interface ConversationDTO {
   createdAt: string;
   updatedAt: string;
   members: ConversationMemberDTO[];
+  lastMessage: MessagePreviewDTO | null;
 }
 
 export interface ConversationListData {

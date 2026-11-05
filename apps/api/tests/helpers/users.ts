@@ -35,9 +35,10 @@ export async function createVerifiedUser(input: {
     },
   });
 
+  const session = await createSession(user.id);
   const token = await signAccessToken({
     userId: user.id,
-    sessionId: randomUUID(),
+    sessionId: session.id,
   });
 
   return { user, token, auth: `Bearer ${token}` };

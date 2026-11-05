@@ -9,10 +9,13 @@ describe('access tokens', () => {
       sessionId: 'f2f5b3a1-8b1f-4b4f-9a1a-2d3e4f5a6b7c',
     });
 
-    await expect(verifyAccessToken(token)).resolves.toEqual({
+    const payload = await verifyAccessToken(token);
+
+    expect(payload).toMatchObject({
       userId: '3d9f3f2a-56f7-4d3b-8e0d-9a7d1f4f6a10',
       sessionId: 'f2f5b3a1-8b1f-4b4f-9a1a-2d3e4f5a6b7c',
     });
+    expect(payload.expiresAt).toBeGreaterThan(Math.floor(Date.now() / 1000));
   });
 
   it('rejects a tampered token', async () => {

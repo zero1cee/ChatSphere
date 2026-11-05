@@ -9,9 +9,15 @@ const AUDIENCE = 'chatsphere-web';
 export interface AccessTokenPayload {
   userId: string;
   sessionId: string;
+  expiresAt: number;
 }
 
-export async function signAccessToken(payload: AccessTokenPayload): Promise<string> {
+export interface SignAccessTokenInput {
+  userId: string;
+  sessionId: string;
+}
+
+export async function signAccessToken(payload: SignAccessTokenInput): Promise<string> {
   return new SignJWT({ sid: payload.sessionId })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(payload.userId)
@@ -29,12 +35,17 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
     algorithms: ['HS256'],
   });
 
-  if (typeof payload.sub !== 'string' || typeof payload.sid !== 'string') {
+  if (
+    typeof payload.sub !== 'string' ||
+    typeof payload.sid !== 'string' ||
+    typeof payload.exp !== 'number'
+  ) {
     throw new Error('Access token is missing required claims.');
   }
 
   return {
     userId: payload.sub,
     sessionId: payload.sid,
+    expiresAt: payload.exp,
   };
 }

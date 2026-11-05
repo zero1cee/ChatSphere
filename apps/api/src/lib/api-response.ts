@@ -7,9 +7,15 @@ export function getRequestId(res: Response): string {
   return typeof header === 'string' && header.length > 0 ? header : 'unknown';
 }
 
-export function sendSuccess<T>(res: Response, data: T, status = 200): void {
-  const body: ApiSuccess<T> = {
+export function sendSuccess<T, TMeta = Record<string, unknown>>(
+  res: Response,
+  data: T,
+  status = 200,
+  meta?: TMeta,
+): void {
+  const body: ApiSuccess<T, TMeta> = {
     data,
+    ...(meta === undefined ? {} : { meta }),
     requestId: getRequestId(res),
   };
 

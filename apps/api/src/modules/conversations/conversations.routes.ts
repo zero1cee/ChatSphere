@@ -3,6 +3,7 @@ import type {
   ConversationData,
   ConversationListData,
   CreateConversationInput,
+  MessageListData,
   UpdateConversationInput,
   UpdateMemberRoleInput,
 } from '@chatsphere/shared';
@@ -18,6 +19,7 @@ import { z } from 'zod';
 import { sendSuccess } from '../../lib/api-response.js';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth, requireVerifiedEmail } from '../../middleware/auth.js';
+import { listMessages } from '../messages/messages.service.js';
 import {
   addConversationMembers,
   createDirectConversation,
@@ -33,6 +35,14 @@ import {
 export const conversationsRouter = Router();
 
 conversationsRouter.use(requireAuth, requireVerifiedEmail);
+
+const historyQuerySchema = z
+  .object({
+    before: z.string().optional(),
+    after: z.string().optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+  })
+  .strict();
 
 function userId(req: { auth?: { userId: string } }): string {
   if (!req.auth) {
@@ -65,6 +75,15 @@ conversationsRouter.post('/', async (req, res) => {
   const data: ConversationData = { conversation };
 
   sendSuccess(res, data, 201);
+});
+
+conversationsRouter.get('/:id/messages', async (req, res) => {
+  const conversationId = z.uuid().parse(req.params.id);
+  const query = historyQuerySchema.parse(req.query);
+  const result = await listMessages(conversationId, userId(req), query);
+  const data: MessageListData = { messages: result.messages };
+
+  sendSuccess(res, data, 200, result.meta);
 });
 
 conversationsRouter.get('/:id', async (req, res) => {

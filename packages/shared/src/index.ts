@@ -39,7 +39,10 @@ export interface ReadinessData {
 
 export * from './dto/auth.js';
 export * from './dto/conversations.js';
+export * from './dto/messages.js';
 export * from './dto/users.js';
 export * from './schemas/auth.js';
 export * from './schemas/conversations.js';
+export * from './schemas/messages.js';
 export * from './schemas/users.js';
+export * from './types/socket.js';

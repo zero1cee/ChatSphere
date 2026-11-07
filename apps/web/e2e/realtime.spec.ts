@@ -122,6 +122,8 @@ test('two users exchange a realtime message with receipts, actions, attachment, 
     await bobPage.getByRole('log').waitFor();
 
     await expect(alicePage.locator('main header').getByText(/Online/)).toBeVisible();
+    // Allow the high-latency public tunnel time to finish both room joins.
+    await bobPage.waitForTimeout(2_000);
 
     const message = `Hello Blake ${suffix}`;
     await alicePage.getByLabel(`Message ${bob.name}`).fill(message);

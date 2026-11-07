@@ -101,7 +101,7 @@ Manual two-browser verification (Ada on desktop, Ben on mobile):
 
 Other checks:
 
-- `pnpm lint` — passed, 153 files.
+- `pnpm lint` — passed, 154 files.
 - `pnpm typecheck` — passed for shared, API, and web.
 - `pnpm build` — passed; 11 routes, including the dynamic conversation route.
 - `pnpm test:e2e` — existing authentication E2E passed (1 test).

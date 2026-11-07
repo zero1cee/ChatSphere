@@ -108,6 +108,20 @@ Result: **received across instances**. Both servers logged the Redis adapter as 
 Local production smoke uses `COOKIE_SECURE=false` over HTTP. A real deployment must use HTTPS and
 `COOKIE_SECURE=true`.
 
+### Temporary public tunnel validation
+
+A temporary public demo was also verified through Cloudflare Quick Tunnel against the production
+Compose stack:
+
+- Public HTTPS auth + accessibility Playwright test passed.
+- Full two-user realtime Playwright test passed through the tunnel, including attachment upload and
+  notification navigation.
+- Public readiness returned `database=up`, `redis=up`.
+- The seeded demo account loaded the public **Launch room** group and its presigned S3 image.
+
+See [temporary-public-demo.md](temporary-public-demo.md). This is a demo path, not a permanent
+deployment.
+
 ## Known limitations
 
 - No public cloud deployment has been performed; this phase validates images and Compose locally.

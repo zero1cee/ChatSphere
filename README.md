@@ -242,6 +242,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 ```
 
 See [docs/deployment.md](docs/deployment.md) for TLS, migrations, backups, and scaling notes.
+For a temporary public demo over Cloudflare Quick Tunnel, see [docs/temporary-public-demo.md](docs/temporary-public-demo.md).
 
 ## Testing
 

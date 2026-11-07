@@ -21,8 +21,12 @@ import {
 
 export const usersRouter = Router();
 
-const searchLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 60 });
-const passwordLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 10 });
+const searchLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 60, prefix: 'users:search' });
+const passwordLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  prefix: 'users:password',
+});
 
 usersRouter.get('/me', requireAuth, async (req, res) => {
   if (!req.auth) {

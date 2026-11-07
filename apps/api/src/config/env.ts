@@ -34,6 +34,10 @@ const envSchema = z.object({
   SMTP_FROM: z.string().trim().min(1).default('ChatSphere <no-reply@chatsphere.local>'),
 
   COOKIE_DOMAIN: optionalString,
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default(process.env.NODE_ENV === 'production' ? 'true' : 'false')
+    .transform((value) => value === 'true'),
   TRUST_PROXY: z
     .enum(['true', 'false'])
     .default('false')
@@ -42,6 +46,11 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  REDIS_URL: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
 
   S3_ENDPOINT: z
     .url()

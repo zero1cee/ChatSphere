@@ -18,6 +18,7 @@ export default defineConfig({
       WEB_ORIGIN: 'http://localhost:3000',
       LOG_LEVEL: 'silent',
       RATE_LIMIT_ENABLED: 'false',
+      REDIS_URL: '',
       ACCESS_TOKEN_TTL_SECONDS: '900',
       REFRESH_TOKEN_TTL_DAYS: '30',
       EMAIL_VERIFICATION_TTL_HOURS: '24',

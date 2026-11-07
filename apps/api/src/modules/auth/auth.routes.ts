@@ -15,14 +15,46 @@ import {
 
 export const authRouter = Router();
 
-const registerLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 10 });
-const loginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 20 });
-const refreshLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 120 });
-const logoutLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 60 });
-const verifyLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 20 });
-const resendLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 5 });
-const forgotLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 5 });
-const resetLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 10 });
+const registerLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  prefix: 'auth:register',
+});
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  prefix: 'auth:login',
+});
+const refreshLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  prefix: 'auth:refresh',
+});
+const logoutLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  prefix: 'auth:logout',
+});
+const verifyLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  prefix: 'auth:verify',
+});
+const resendLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  prefix: 'auth:resend',
+});
+const forgotLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  prefix: 'auth:forgot',
+});
+const resetLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  prefix: 'auth:reset',
+});
 
 authRouter.post('/register', registerLimiter, registerController);
 authRouter.post('/login', loginLimiter, loginController);

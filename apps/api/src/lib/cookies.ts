@@ -6,7 +6,7 @@ export const REFRESH_COOKIE_NAME = 'cs_refresh';
 
 const baseCookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: env.NODE_ENV === 'production',
+  secure: env.COOKIE_SECURE,
   sameSite: 'lax',
   path: '/api/auth',
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),

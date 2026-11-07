@@ -33,6 +33,7 @@ export interface ReadinessData {
   status: 'ready' | 'unavailable';
   checks: {
     database: 'up' | 'down';
+    redis?: 'up' | 'down' | 'disabled';
   };
   timestamp: string;
 }

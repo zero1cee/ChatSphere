@@ -4,6 +4,7 @@ import { Router } from 'express';
 import { sendSuccess } from '../../lib/api-response.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
+import { getRedisClient, isRedisConfigured } from '../../lib/redis.js';
 
 export const healthRouter = Router();
 
@@ -19,6 +20,7 @@ healthRouter.get('/health', (_req, res) => {
 
 healthRouter.get('/health/ready', async (_req, res) => {
   let database: ReadinessData['checks']['database'] = 'down';
+  let redis: NonNullable<ReadinessData['checks']['redis']> = 'disabled';
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -27,11 +29,33 @@ healthRouter.get('/health/ready', async (_req, res) => {
     logger.error({ err: error }, 'Database readiness check failed');
   }
 
+  if (isRedisConfigured()) {
+    try {
+      const client = getRedisClient();
+
+      if (client?.isOpen) {
+        await client.ping();
+        redis = 'up';
+      } else {
+        redis = 'down';
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Redis readiness check failed');
+      redis = 'down';
+    }
+  }
+
+  const ready = database === 'up' && redis !== 'down';
+  const checks: ReadinessData['checks'] = {
+    database,
+    ...(isRedisConfigured() ? { redis } : {}),
+  };
+
   const data: ReadinessData = {
-    status: database === 'up' ? 'ready' : 'unavailable',
-    checks: { database },
+    status: ready ? 'ready' : 'unavailable',
+    checks,
     timestamp: new Date().toISOString(),
   };
 
-  sendSuccess(res, data, database === 'up' ? 200 : 503);
+  sendSuccess(res, data, ready ? 200 : 503);
 });

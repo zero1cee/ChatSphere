@@ -36,7 +36,8 @@ const SocketContext = createContext<SocketContextValue>({
   presence: {},
 });
 
-const SOCKET_URL = (process.env.NEXT_PUBLIC_SOCKET_URL ?? API_BASE_URL).replace(/\/$/, '');
+const SOCKET_URL =
+  (process.env.NEXT_PUBLIC_SOCKET_URL ?? API_BASE_URL).replace(/\/$/, '') || undefined;
 
 export function useSocket(): SocketContextValue {
   return useContext(SocketContext);

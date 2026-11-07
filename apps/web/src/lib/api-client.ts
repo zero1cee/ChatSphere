@@ -13,10 +13,11 @@ import type {
 
 import { useAuthStore } from '@/stores/auth-store';
 
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(
-  /\/$/,
-  '',
-);
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export const API_BASE_URL = (
+  configuredApiUrl === undefined ? 'http://localhost:4000' : configuredApiUrl
+).replace(/\/$/, '');
 
 export class ApiError extends Error {
   readonly status: number;

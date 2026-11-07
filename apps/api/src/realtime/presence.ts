@@ -7,15 +7,22 @@ import type {
 } from '@chatsphere/shared';
 import type { Server, Socket } from 'socket.io';
 
+import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/prisma.js';
+import { getRedisClient } from '../lib/redis.js';
 import { userRoom } from './rooms.js';
 
 type ChatServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 type ChatSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
 const socketsByUser = new Map<string, Set<string>>();
+const PRESENCE_TTL_SECONDS = 300;
 
-export function addOnlineSocket(userId: string, socketId: string): boolean {
+function presenceKey(userId: string): string {
+  return `chatsphere:presence:${userId}`;
+}
+
+function addLocalSocket(userId: string, socketId: string): boolean {
   const sockets = socketsByUser.get(userId) ?? new Set<string>();
   const wasOffline = sockets.size === 0;
   sockets.add(socketId);
@@ -24,7 +31,7 @@ export function addOnlineSocket(userId: string, socketId: string): boolean {
   return wasOffline;
 }
 
-export function removeOnlineSocket(userId: string, socketId: string): boolean {
+function removeLocalSocket(userId: string, socketId: string): boolean {
   const sockets = socketsByUser.get(userId);
 
   if (!sockets) {
@@ -41,8 +48,84 @@ export function removeOnlineSocket(userId: string, socketId: string): boolean {
   return true;
 }
 
-export function isUserOnline(userId: string): boolean {
+function isLocallyOnline(userId: string): boolean {
   return (socketsByUser.get(userId)?.size ?? 0) > 0;
+}
+
+export async function addOnlineSocket(userId: string, socketId: string): Promise<boolean> {
+  const locallyOffline = addLocalSocket(userId, socketId);
+  const redis = getRedisClient();
+
+  if (!redis) {
+    return locallyOffline;
+  }
+
+  try {
+    const key = presenceKey(userId);
+    await redis.sAdd(key, socketId);
+    await redis.expire(key, PRESENCE_TTL_SECONDS);
+    const count = await redis.sCard(key);
+    return count === 1;
+  } catch (error) {
+    logger.error({ err: error }, 'Redis presence add failed');
+    return locallyOffline;
+  }
+}
+
+export async function removeOnlineSocket(userId: string, socketId: string): Promise<boolean> {
+  const locallyOffline = removeLocalSocket(userId, socketId);
+  const redis = getRedisClient();
+
+  if (!redis) {
+    return locallyOffline;
+  }
+
+  try {
+    const key = presenceKey(userId);
+    await redis.sRem(key, socketId);
+    const count = await redis.sCard(key);
+
+    if (count === 0) {
+      await redis.del(key);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    logger.error({ err: error }, 'Redis presence remove failed');
+    return locallyOffline;
+  }
+}
+
+export async function refreshPresence(userId: string, socketId: string): Promise<void> {
+  const redis = getRedisClient();
+
+  if (!redis) {
+    return;
+  }
+
+  try {
+    const key = presenceKey(userId);
+    await redis.sAdd(key, socketId);
+    await redis.expire(key, PRESENCE_TTL_SECONDS);
+  } catch (error) {
+    logger.error({ err: error }, 'Redis presence refresh failed');
+  }
+}
+
+export async function isUserOnline(userId: string): Promise<boolean> {
+  const redis = getRedisClient();
+
+  if (!redis) {
+    return isLocallyOnline(userId);
+  }
+
+  try {
+    return (await redis.sCard(presenceKey(userId))) > 0;
+  } catch (error) {
+    logger.error({ err: error }, 'Redis presence lookup failed');
+    return isLocallyOnline(userId);
+  }
 }
 
 export async function getCoMemberIds(userId: string): Promise<string[]> {
@@ -76,10 +159,11 @@ export async function getPresenceStates(userIds: string[]): Promise<PresenceStat
     where: { id: { in: userIds } },
     select: { id: true, lastSeenAt: true },
   });
+  const events = await Promise.all(users.map((user) => isUserOnline(user.id)));
 
-  return users.map((user) => ({
+  return users.map((user, index) => ({
     userId: user.id,
-    online: isUserOnline(user.id),
+    online: events[index] ?? false,
     lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
   }));
 }
@@ -111,9 +195,15 @@ export async function broadcastPresence(
 
 export async function markUserOffline(io: ChatServer, userId: string): Promise<void> {
   const lastSeenAt = new Date();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { lastSeenAt },
-  });
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastSeenAt },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Could not persist last-seen timestamp');
+  }
+
   await broadcastPresence(io, userId, false, lastSeenAt.toISOString());
 }

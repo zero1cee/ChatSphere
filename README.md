@@ -8,10 +8,11 @@ This is a portfolio project built as a production-style modular monolith — not
 app. It is being built in verified milestones, with the architecture and trade-offs documented as
 it grows.
 
-> **Status: Phase 7 — realtime verification and hardening.** The two-user messaging flow,
-> accessibility, rate limits, upload limits, and failure paths are now covered by automated
-> Playwright and Vitest suites. Production Docker images, Redis, and deployment remain. See the
-> [Phase 7 verification log](docs/phase-7-hardening.md) for commands and results.
+> **Status: Phase 8 — production packaging.** Redis now backs rate limits, presence, and the
+> Socket.IO adapter; multi-instance delivery is verified. Production API/web images, Nginx routing,
+> readiness checks, and Docker Compose deployment are in place. A public cloud deployment and
+> managed S3/SMTP remain operational steps. See the
+> [Phase 8 verification log](docs/phase-8-deployment.md) and [deployment guide](docs/deployment.md).
 
 ## What works today
 
@@ -42,6 +43,11 @@ it grows.
   read receipts, reactions, replies, editing, deletion, attachments, and notification navigation.
 - **Accessibility:** axe checks run against landing, login, authenticated workspace, conversation,
   and notification dialog surfaces; serious/critical violations fail the E2E suite.
+- **Horizontal realtime:** Socket.IO Redis pub/sub, Redis-backed presence with TTL refresh, and
+  Redis-backed API/socket rate limits. Cross-instance message delivery is verified.
+- **Production packaging:** multi-stage API and Next.js standalone images, an Nginx reverse proxy,
+  PostgreSQL/Redis Compose services, automatic migrations, and readiness checks for PostgreSQL and
+  Redis.
 - Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs,
   consistent JSON envelopes, and liveness/readiness checks.
 - PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens,
@@ -54,10 +60,10 @@ it grows.
 
 ## Not built yet
 
-Avatar uploads, email/push notification delivery, message search, audit/moderation history,
-attachment malware scanning and orphan cleanup, the Redis Socket.IO adapter and multi-instance
-presence, production Docker images, and deployment. These arrive in the final scaling/deployment
-phase.
+A public cloud deployment, managed object storage/SMTP provisioning, push/email notifications,
+avatar uploads, message search, audit/moderation history, attachment malware scanning and orphan
+cleanup, and horizontal autoscaling policy. The production images and Compose stack are ready for
+those operational steps.
 
 ## Screenshots
 
@@ -90,7 +96,7 @@ phase.
 | API         | Node.js 24, Express 5.3.0, TypeScript, Zod 4, pino, Helmet, express-rate-limit                          |
 | Auth        | Argon2id (`@node-rs/argon2`), `jose` JWT access tokens, rotating refresh sessions                       |
 | Data        | PostgreSQL 18.6, Prisma 7.10.1 with `@prisma/adapter-pg`                                                |
-| Realtime    | Socket.IO 4.8.4 (server) + socket.io-client 4.8.4                                                       |
+| Realtime    | Socket.IO 4.8.4, `@socket.io/redis-adapter` 8.3.0, Redis 8.10, socket.io-client 4.8.4                   |
 | Storage     | S3-compatible object storage (S3Mock locally, S3/R2 in production), AWS SDK v3, presigned URLs          |
 | Local infra | Docker Compose, Redis 8.10, Mailpit, Adobe S3Mock                                                       |
 | Testing     | Vitest 5, Supertest, Playwright 1.64, axe-core 4.14                                                     |
@@ -218,7 +224,7 @@ Open:
 | `pnpm lint`        | Biome check (lint, format, imports)                            |
 | `pnpm format`      | Apply Biome safe fixes                                         |
 | `pnpm typecheck`   | Build shared contracts, then typecheck every package           |
-| `pnpm test`        | Run Vitest unit and integration tests                          |
+| `pnpm test`        | Run Vitest unit, integration, and realtime tests               |
 | `pnpm test:e2e`    | Run Playwright E2E against running dev servers                 |
 | `pnpm db:generate` | Generate the Prisma client                                     |
 | `pnpm db:migrate`  | Create/apply a development migration                           |
@@ -226,6 +232,16 @@ Open:
 | `pnpm db:studio`   | Open Prisma Studio                                             |
 | `pnpm infra:up`    | Start local infrastructure                                     |
 | `pnpm infra:down`  | Stop local infrastructure                                      |
+
+### Production images
+
+```bash
+cp .env.production.example .env.production
+docker compose --env-file .env.production -f docker-compose.prod.yml build
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+```
+
+See [docs/deployment.md](docs/deployment.md) for TLS, migrations, backups, and scaling notes.
 
 ## Testing
 
@@ -248,7 +264,7 @@ pnpm --filter @chatsphere/web exec playwright install chromium
 The E2E test reads the real verification email through the Mailpit API, so Mailpit must be running.
 It is not yet wired into GitHub Actions; the CI job runs the 54 Vitest tests. The Playwright suite
 registers users through the real API, verifies through Mailpit, and drives two independent browser
-contexts against the live Socket.IO server.
+contexts against the live Socket.IO server. E2E requires the dev stack, Mailpit, S3Mock, and Redis.
 
 ## Technical decisions
 
@@ -292,9 +308,15 @@ contexts against the live Socket.IO server.
   demotes the existing owner and promotes the target in one transaction.
 - **Direct conversations are hidden per user, not deleted.** `ConversationMember.hiddenAt` keeps the
   other participant's history intact and starting the chat again reopens the same conversation.
-- **Rate limits and presence are in-memory for now.** They are correct for a single API instance;
-  Redis-backed limits, presence, and the Socket.IO adapter arrive with the scaling phase before
-  horizontal deployment is described as ready.
+- **Redis is the shared control plane in production.** Rate limits, presence socket sets, Socket.IO
+  pub/sub, and the notification fan-out work across API replicas. When `REDIS_URL` is absent (tests),
+  the API uses in-memory fallbacks. Presence keys expire after five minutes and are refreshed while a
+  socket is connected.
+- **Production traffic is same-origin.** Nginx routes `/`, `/api`, and `/socket.io` to the web and API
+  services. The web build uses relative API URLs and the current origin for Socket.IO, so no
+  cross-origin cookie/CORS gap exists in deployment.
+- **Migrations run before the API starts.** The API entrypoint applies committed Prisma migrations;
+  set `RUN_MIGRATIONS=false` to separate the migration job from rolling API starts.
 
 ## Database
 
@@ -320,7 +342,7 @@ pnpm db:studio       # inspect data
 5. ~~Phase 5 — real-time messaging with Socket.IO~~ ✅
 6. ~~Phase 6 — typing, presence, receipts, attachments, notifications, message actions~~ ✅
 7. ~~Phase 7 — full realtime/E2E suites and failure hardening~~ ✅
-8. Phase 8 — Redis, Docker production images, deployment, documentation, screenshots
+8. ~~Phase 8 — Redis, Docker production images, deployment, documentation, screenshots~~ ✅
 
 ## License
 

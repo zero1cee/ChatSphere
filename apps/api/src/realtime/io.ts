@@ -20,6 +20,7 @@ import {
   broadcastPresence,
   getCoMemberIds,
   markUserOffline,
+  refreshPresence,
   removeOnlineSocket,
   sendPresenceSnapshot,
 } from './presence.js';
@@ -74,9 +75,8 @@ export function createSocketServer(httpServer: HttpServer): ChatServer {
     registerTypingHandlers(socket);
     registerReceiptHandlers(io, socket);
 
-    const wasOffline = addOnlineSocket(auth.userId, socket.id);
-
     void (async () => {
+      const wasOffline = await addOnlineSocket(auth.userId, socket.id);
       const memberIds = await getCoMemberIds(auth.userId);
 
       if (wasOffline) {
@@ -87,6 +87,10 @@ export function createSocketServer(httpServer: HttpServer): ChatServer {
     })().catch((error) => {
       logger.error({ err: error }, 'Presence update failed');
     });
+
+    const presenceRefreshTimer = setInterval(() => {
+      void refreshPresence(auth.userId, socket.id);
+    }, 120_000);
 
     const expiresIn = Math.max(0, auth.expiresAt * 1000 - Date.now());
     const expiryTimer = setTimeout(() => {
@@ -101,12 +105,17 @@ export function createSocketServer(httpServer: HttpServer): ChatServer {
 
     socket.on('disconnect', (reason) => {
       clearTimeout(expiryTimer);
+      clearInterval(presenceRefreshTimer);
 
-      if (removeOnlineSocket(auth.userId, socket.id)) {
-        void markUserOffline(io, auth.userId).catch((error) => {
-          logger.error({ err: error }, 'Presence offline update failed');
-        });
-      }
+      void (async () => {
+        const wentOffline = await removeOnlineSocket(auth.userId, socket.id);
+
+        if (wentOffline) {
+          await markUserOffline(io, auth.userId);
+        }
+      })().catch((error) => {
+        logger.error({ err: error }, 'Presence offline update failed');
+      });
 
       logger.debug({ socketId: socket.id, userId: auth.userId, reason }, 'Socket disconnected');
     });

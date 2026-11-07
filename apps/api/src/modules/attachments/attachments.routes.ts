@@ -13,7 +13,11 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: attachmentFileSizeLimit, files: 1 },
 });
-const uploadLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, limit: 60 });
+const uploadLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  prefix: 'attachments:upload',
+});
 
 attachmentsRouter.use(requireAuth, requireVerifiedEmail);
 

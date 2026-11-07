@@ -94,14 +94,15 @@ export async function broadcastPresence(
   userId: string,
   online: boolean,
   lastSeenAt: string | null,
+  coMemberIds?: string[],
 ): Promise<void> {
-  const coMemberIds = await getCoMemberIds(userId);
+  const recipients = coMemberIds ?? (await getCoMemberIds(userId));
 
-  if (coMemberIds.length === 0) {
+  if (recipients.length === 0) {
     return;
   }
 
-  io.to(coMemberIds.map(userRoom)).emit('presence:updated', {
+  io.to(recipients.map(userRoom)).emit('presence:updated', {
     userId,
     online,
     lastSeenAt,

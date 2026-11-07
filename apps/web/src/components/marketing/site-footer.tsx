@@ -26,7 +26,7 @@ export function SiteFooter() {
           <a href="#stack" className="transition-colors hover:text-foreground">
             Stack
           </a>
-          <span className="text-muted-foreground/70">© 2026 ChatSphere</span>
+          <span className="text-muted-foreground">© 2026 ChatSphere</span>
         </div>
       </div>
     </footer>

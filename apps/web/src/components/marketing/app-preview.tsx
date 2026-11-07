@@ -25,7 +25,7 @@ function Avatar({ initials, className }: { initials: string; className?: string 
 }
 
 const conversations = [
-  { name: 'Design crew', initials: 'DC', active: true, color: 'bg-primary/10 text-primary' },
+  { name: 'Design crew', initials: 'DC', active: true, color: 'bg-primary/15 text-foreground' },
   { name: 'Maya Chen', initials: 'MC', active: false, color: 'bg-accent text-accent-foreground' },
   {
     name: 'Ship notes',
@@ -33,7 +33,7 @@ const conversations = [
     active: false,
     color: 'bg-secondary text-secondary-foreground',
   },
-  { name: 'Jon Bell', initials: 'JB', active: false, color: 'bg-warning/15 text-warning' },
+  { name: 'Jon Bell', initials: 'JB', active: false, color: 'bg-warning/20 text-foreground' },
 ];
 
 export function AppPreview() {
@@ -127,7 +127,7 @@ export function AppPreview() {
               <div className="flex items-end gap-2">
                 <Avatar
                   initials="JB"
-                  className="size-6 bg-warning/15 text-[0.55rem] text-warning"
+                  className="size-6 bg-warning/20 text-[0.55rem] text-foreground"
                 />
                 <div className="space-y-1">
                   <div className="rounded-2xl rounded-bl-md border border-border/60 bg-surface-raised px-3 py-2 text-[0.68rem] leading-relaxed">

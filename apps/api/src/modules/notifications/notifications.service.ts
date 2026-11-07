@@ -35,17 +35,17 @@ export async function createMessageNotifications(input: {
     input.senderName,
   );
 
-  for (const userId of recipients) {
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type: 'MESSAGE',
-        conversationId: input.message.conversationId,
-        payload: payload as unknown as Prisma.InputJsonValue,
-      },
-    });
+  const notifications = await prisma.notification.createManyAndReturn({
+    data: recipients.map((userId) => ({
+      userId,
+      type: 'MESSAGE',
+      conversationId: input.message.conversationId,
+      payload: payload as unknown as Prisma.InputJsonValue,
+    })),
+  });
 
-    emitToUsers([userId], 'notification:new', {
+  for (const notification of notifications) {
+    emitToUsers([notification.userId], 'notification:new', {
       notification: toNotificationDTO(notification),
     });
   }
@@ -122,17 +122,17 @@ export async function createMembershipNotifications(input: {
     ...(input.role ? { role: input.role } : {}),
   };
 
-  for (const userId of input.userIds) {
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type: input.type,
-        conversationId: input.conversationId,
-        payload: payload as unknown as Prisma.InputJsonValue,
-      },
-    });
+  const notifications = await prisma.notification.createManyAndReturn({
+    data: input.userIds.map((userId) => ({
+      userId,
+      type: input.type,
+      conversationId: input.conversationId,
+      payload: payload as unknown as Prisma.InputJsonValue,
+    })),
+  });
 
-    emitToUsers([userId], 'notification:new', {
+  for (const notification of notifications) {
+    emitToUsers([notification.userId], 'notification:new', {
       notification: toNotificationDTO(notification),
     });
   }

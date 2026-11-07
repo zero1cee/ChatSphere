@@ -58,7 +58,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </ul>
         </div>
 
-        <p className="relative text-[0.68rem] text-white/35">
+        <p className="relative text-[0.68rem] text-white/60">
           ChatSphere · a 2027 SDE portfolio project
         </p>
       </aside>

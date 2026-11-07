@@ -227,6 +227,7 @@ export function MessageComposer({
             multiple
             accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
             className="sr-only"
+            aria-label="Choose files to attach"
             onChange={(event) => void uploadFiles(event.target.files)}
           />
           <Button

@@ -8,10 +8,10 @@ This is a portfolio project built as a production-style modular monolith — not
 app. It is being built in verified milestones, with the architecture and trade-offs documented as
 it grows.
 
-> **Status: Phase 6 — realtime collaboration.** Typing, presence, delivery/read receipts, message
-> actions, replies, reactions, S3-backed attachments, and in-app notifications are implemented and
-> verified. Production hardening, full realtime E2E coverage, and deployment are next. See the
-> [Phase 6 verification log](docs/phase-6-realtime-collaboration.md) for commands and results.
+> **Status: Phase 7 — realtime verification and hardening.** The two-user messaging flow,
+> accessibility, rate limits, upload limits, and failure paths are now covered by automated
+> Playwright and Vitest suites. Production Docker images, Redis, and deployment remain. See the
+> [Phase 7 verification log](docs/phase-7-hardening.md) for commands and results.
 
 ## What works today
 
@@ -38,13 +38,17 @@ it grows.
 - **Workspace UI:** responsive conversation list, message thread and composer, mentions of presence,
   typing, read receipts and attachment previews, new-conversation flow, group details, settings, and
   notification center.
+- **Automated end-to-end coverage:** a two-browser realtime Playwright flow covers typing, delivery,
+  read receipts, reactions, replies, editing, deletion, attachments, and notification navigation.
+- **Accessibility:** axe checks run against landing, login, authenticated workspace, conversation,
+  and notification dialog surfaces; serious/critical violations fail the E2E suite.
 - Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs,
   consistent JSON envelopes, and liveness/readiness checks.
 - PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens,
   conversations, memberships, and the complete future messaging model.
 - Docker Compose for PostgreSQL, Redis, Mailpit, and an S3-compatible local store (S3Mock).
-- **Tests:** 52 Vitest unit, integration, and realtime tests and a Playwright authentication E2E
-  test.
+- **Tests:** 54 Vitest unit, integration, and realtime tests and 2 Playwright E2E tests (auth plus
+  two-user realtime collaboration).
 - GitHub Actions CI for install, Prisma generation, migrations, linting, type checking, tests, and
   builds. Playwright E2E is local-only for now.
 
@@ -52,7 +56,8 @@ it grows.
 
 Avatar uploads, email/push notification delivery, message search, audit/moderation history,
 attachment malware scanning and orphan cleanup, the Redis Socket.IO adapter and multi-instance
-presence, production Docker images, and deployment. These arrive in later phases, each with tests.
+presence, production Docker images, and deployment. These arrive in the final scaling/deployment
+phase.
 
 ## Screenshots
 
@@ -88,7 +93,7 @@ presence, production Docker images, and deployment. These arrive in later phases
 | Realtime    | Socket.IO 4.8.4 (server) + socket.io-client 4.8.4                                                       |
 | Storage     | S3-compatible object storage (S3Mock locally, S3/R2 in production), AWS SDK v3, presigned URLs          |
 | Local infra | Docker Compose, Redis 8.10, Mailpit, Adobe S3Mock                                                       |
-| Testing     | Vitest 5, Supertest, Playwright 1.64                                                                    |
+| Testing     | Vitest 5, Supertest, Playwright 1.64, axe-core 4.14                                                     |
 | Tooling     | pnpm 12.16.1, Biome 2.6.5, GitHub Actions                                                               |
 
 Exact versions and the reasons for the important pins are in
@@ -225,8 +230,8 @@ Open:
 ## Testing
 
 ```bash
-pnpm test       # 52 Vitest tests: unit, auth, users, conversations, actions, attachments, sockets
-pnpm test:e2e   # Playwright: register → verify → sign in → sign out
+pnpm test       # 54 Vitest tests: unit, auth, users, conversations, actions, attachments, sockets
+pnpm test:e2e   # Playwright: auth plus a two-user realtime collaboration flow
 ```
 
 `pnpm test` creates and migrates `chatsphere_test` automatically. Override the database with
@@ -241,9 +246,9 @@ pnpm --filter @chatsphere/web exec playwright install chromium
 ```
 
 The E2E test reads the real verification email through the Mailpit API, so Mailpit must be running.
-It is not yet wired into GitHub Actions; the CI job runs the 52 Vitest tests. The two-browser
-realtime flows are verified manually; Socket.IO delivery, presence, typing, receipts, actions,
-attachments, and notifications are covered by the API and realtime suites.
+It is not yet wired into GitHub Actions; the CI job runs the 54 Vitest tests. The Playwright suite
+registers users through the real API, verifies through Mailpit, and drives two independent browser
+contexts against the live Socket.IO server.
 
 ## Technical decisions
 
@@ -272,7 +277,10 @@ attachments, and notifications are covered by the API and realtime suites.
   URLs.
 - **Notifications are in-app and event-driven.** Message and group-membership notifications are
   persisted per recipient, pushed over Socket.IO, and marked read by the notification center or an
-  open conversation.
+  open conversation. Sends and membership changes batch notification inserts.
+- **Accessibility and realtime flows are executable tests, not checklists.** axe runs inside the
+  Playwright suite, and the realtime test creates isolated users through the public API rather than
+  using a test-only backdoor.
 - **Client-generated message IDs make sends idempotent.** A unique `(senderId, clientMessageId)`
   constraint plus an ack/retry path prevents duplicate messages after reconnects or timeouts.
 - **History uses a `(createdAt, id)` cursor.** Pages remain stable while new messages arrive, and
@@ -311,7 +319,7 @@ pnpm db:studio       # inspect data
 4. ~~Phase 4 — users, profiles, direct and group conversations~~ ✅
 5. ~~Phase 5 — real-time messaging with Socket.IO~~ ✅
 6. ~~Phase 6 — typing, presence, receipts, attachments, notifications, message actions~~ ✅
-7. Phase 7 — full realtime/E2E suites and failure hardening
+7. ~~Phase 7 — full realtime/E2E suites and failure hardening~~ ✅
 8. Phase 8 — Redis, Docker production images, deployment, documentation, screenshots
 
 ## License

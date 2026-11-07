@@ -76,17 +76,17 @@ export function createSocketServer(httpServer: HttpServer): ChatServer {
 
     const wasOffline = addOnlineSocket(auth.userId, socket.id);
 
-    if (wasOffline) {
-      void broadcastPresence(io, auth.userId, true, null).catch((error) => {
-        logger.error({ err: error }, 'Presence broadcast failed');
-      });
-    }
+    void (async () => {
+      const memberIds = await getCoMemberIds(auth.userId);
 
-    void getCoMemberIds(auth.userId)
-      .then((memberIds) => sendPresenceSnapshot(socket, memberIds))
-      .catch((error) => {
-        logger.error({ err: error }, 'Presence snapshot failed');
-      });
+      if (wasOffline) {
+        await broadcastPresence(io, auth.userId, true, null, memberIds);
+      }
+
+      await sendPresenceSnapshot(socket, memberIds);
+    })().catch((error) => {
+      logger.error({ err: error }, 'Presence update failed');
+    });
 
     const expiresIn = Math.max(0, auth.expiresAt * 1000 - Date.now());
     const expiryTimer = setTimeout(() => {

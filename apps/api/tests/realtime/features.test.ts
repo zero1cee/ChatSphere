@@ -315,4 +315,39 @@ describe('realtime presence, typing, receipts, and notifications', () => {
       replyTo: { id: parent.data.message.id },
     });
   });
+
+  it('rate-limits rapid message sends per socket', async () => {
+    const ada = await createVerifiedUser({
+      name: 'Ada',
+      username: 'ada',
+      email: 'ada@example.com',
+    });
+    const ben = await createVerifiedUser({
+      name: 'Ben',
+      username: 'ben',
+      email: 'ben@example.com',
+    });
+    const conversation = await createDirectConversation(ada.user.id, ben.user.id);
+    const adaSocket = await connect(ada.token);
+    await join(adaSocket, conversation.id);
+
+    const responses = await Promise.all(
+      Array.from({ length: 21 }, (_, index) =>
+        adaSocket.timeout(5_000).emitWithAck('message:send', {
+          conversationId: conversation.id,
+          clientMessageId: randomUUID(),
+          content: `Rapid message ${index}`,
+        }),
+      ),
+    );
+
+    const accepted = responses.filter((response) => response.ok);
+    const rejected = responses.filter((response) => !response.ok);
+
+    expect(accepted).toHaveLength(20);
+    expect(rejected).toHaveLength(1);
+    if (!rejected[0]?.ok) {
+      expect(rejected[0]?.error.code).toBe('RATE_LIMITED');
+    }
+  });
 });

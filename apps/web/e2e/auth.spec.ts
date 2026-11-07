@@ -1,8 +1,23 @@
-import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
 
 interface MailpitMessageSummary {
   ID: string;
   To?: Array<{ Address: string }>;
+}
+
+async function expectNoSeriousA11yViolations(page: Page, surface: string) {
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const violations = results.violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      help: violation.help,
+      targets: violation.nodes.flatMap((node) => node.target),
+    }));
+
+  expect(violations, `${surface} accessibility violations`).toEqual([]);
 }
 
 test('register, verify email, sign in, and sign out', async ({ page, request }) => {
@@ -10,6 +25,14 @@ test('register, verify email, sign in, and sign out', async ({ page, request }) 
   const email = `e2e.${suffix}@example.com`;
   const username = `e2e${suffix}`;
   const password = 'CorrectHorse123';
+
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expectNoSeriousA11yViolations(page, 'landing page');
+
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: /Sign in to ChatSphere/i })).toBeVisible();
+  await expectNoSeriousA11yViolations(page, 'login page');
 
   await page.goto('/register');
   await page.getByLabel('Name', { exact: true }).fill('E2E Tester');
@@ -42,6 +65,7 @@ test('register, verify email, sign in, and sign out', async ({ page, request }) 
   await expect(page).toHaveURL(/\/chats/);
   await expect(page.getByRole('heading', { name: 'Pick a conversation.' })).toBeVisible();
   await expect(page.getByText('E2E Tester').first()).toBeVisible();
+  await expectNoSeriousA11yViolations(page, 'authenticated workspace');
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login/);

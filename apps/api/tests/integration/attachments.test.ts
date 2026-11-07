@@ -121,4 +121,23 @@ describe('attachments', () => {
       })
       .expect(401);
   });
+
+  it('rejects files larger than the configured limit', async () => {
+    const ada = await createVerifiedUser({
+      name: 'Ada',
+      username: 'ada',
+      email: 'ada@example.com',
+    });
+
+    const response = await request(app)
+      .post('/api/attachments')
+      .set('Authorization', ada.auth)
+      .attach('file', Buffer.alloc(10 * 1024 * 1024 + 1, 'a'), {
+        filename: 'too-large.txt',
+        contentType: 'text/plain',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('UPLOAD_INVALID');
+  });
 });

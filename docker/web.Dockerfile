@@ -13,8 +13,8 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
-ARG NEXT_PUBLIC_API_URL=""
-ARG NEXT_PUBLIC_SOCKET_URL=""
+ARG NEXT_PUBLIC_API_URL="https://chatsphere-api-qc44.onrender.com"
+ARG NEXT_PUBLIC_SOCKET_URL="https://chatsphere-api-qc44.onrender.com"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_TELEMETRY_DISABLED=1

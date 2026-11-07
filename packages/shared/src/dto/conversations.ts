@@ -10,6 +10,10 @@ export interface ConversationMemberDTO {
   role: MemberRole;
   joinedAt: string;
   user: PublicUser;
+  lastReadMessageId: string | null;
+  lastReadAt: string | null;
+  lastDeliveredMessageId: string | null;
+  lastDeliveredAt: string | null;
 }
 
 export interface ConversationDTO {

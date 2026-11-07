@@ -43,7 +43,7 @@ export async function authenticateSocket(
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { emailVerifiedAt: true },
+      select: { name: true, emailVerifiedAt: true },
     });
 
     if (!user) {
@@ -56,7 +56,7 @@ export async function authenticateSocket(
       return;
     }
 
-    socket.data.auth = payload;
+    socket.data.auth = { ...payload, name: user.name };
     socket.data.joinedConversationIds = new Set();
     socket.data.messageTimestamps = [];
     next();

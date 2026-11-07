@@ -8,6 +8,7 @@ import { UserAvatar } from '@/components/app/user-avatar';
 import { getConversationPreview, getConversationTitle, getOtherMember } from '@/lib/conversation';
 import { formatConversationTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
+import { useSocket } from '@/providers/socket-provider';
 
 function ConversationItem({
   conversation,
@@ -23,6 +24,8 @@ function ConversationItem({
   const other = conversation.type === 'DIRECT' ? getOtherMember(conversation, currentUserId) : null;
   const avatarName = other?.user.name ?? title;
   const lastMessage = conversation.lastMessage;
+  const { presence } = useSocket();
+  const otherOnline = other ? presence[other.userId]?.online : undefined;
 
   return (
     <Link
@@ -33,7 +36,7 @@ function ConversationItem({
         active ? 'bg-muted text-foreground' : 'hover:bg-muted/70',
       )}
     >
-      <UserAvatar name={avatarName} />
+      <UserAvatar name={avatarName} online={other ? otherOnline : undefined} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-medium">{title}</span>

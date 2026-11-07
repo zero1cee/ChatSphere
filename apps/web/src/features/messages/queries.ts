@@ -1,6 +1,6 @@
 import type { MessageDTO } from '@chatsphere/shared';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { fetchMessagePage, type MessagePage } from './api';
@@ -75,5 +75,30 @@ export function useInsertMessage() {
       );
     },
     [queryClient],
+  );
+}
+
+export function updateMessageInCache(
+  queryClient: QueryClient,
+  conversationId: string,
+  message: MessageDTO,
+): void {
+  queryClient.setQueryData<InfiniteData<MessagePage>>(
+    messageKeys.list(conversationId),
+    (current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        pages: current.pages.map((page) => ({
+          ...page,
+          messages: page.messages.map((existing) =>
+            existing.id === message.id ? message : existing,
+          ),
+        })),
+      };
+    },
   );
 }

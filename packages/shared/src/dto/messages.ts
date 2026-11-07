@@ -5,6 +5,31 @@ export interface MessageSender {
   avatarUrl: string | null;
 }
 
+export interface MessageAttachmentDTO {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  url: string;
+}
+
+export interface MessageReactionDTO {
+  emoji: string;
+  user: {
+    id: string;
+    name: string;
+    username: string;
+  };
+}
+
+export interface MessageReplyPreviewDTO {
+  id: string;
+  content: string | null;
+  senderId: string;
+  senderName: string;
+  deletedAt: string | null;
+}
+
 export interface MessageDTO {
   id: string;
   conversationId: string;
@@ -14,6 +39,9 @@ export interface MessageDTO {
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+  attachments: MessageAttachmentDTO[];
+  reactions: MessageReactionDTO[];
+  replyTo: MessageReplyPreviewDTO | null;
 }
 
 export interface MessagePreviewDTO {
@@ -26,6 +54,7 @@ export interface MessagePreviewDTO {
   };
   createdAt: string;
   deletedAt: string | null;
+  attachmentCount: number;
 }
 
 export interface MessageListData {

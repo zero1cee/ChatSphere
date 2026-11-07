@@ -9,11 +9,13 @@ import type {
 } from '@chatsphere/shared';
 import { sendMessageSchema } from '@chatsphere/shared';
 import type { Server, Socket } from 'socket.io';
+import { logger } from '../../lib/logger.js';
 import { toMessagePreviewDTO } from '../../modules/messages/messages.mapper.js';
 import {
   createMessage,
   getConversationMemberIds,
 } from '../../modules/messages/messages.service.js';
+import { createMessageNotifications } from '../../modules/notifications/notifications.service.js';
 import { replyWithError } from '../ack.js';
 import { userRoom } from '../rooms.js';
 
@@ -66,6 +68,8 @@ export function registerMessageHandlers(io: ChatServer, socket: ChatSocket): voi
           senderId: socket.data.auth.userId,
           clientMessageId: parsed.clientMessageId,
           content: parsed.content,
+          attachmentIds: parsed.attachmentIds,
+          replyToId: parsed.replyToId,
         });
 
         if (!duplicate) {
@@ -79,6 +83,15 @@ export function registerMessageHandlers(io: ChatServer, socket: ChatSocket): voi
 
           io.to(memberRooms).emit('message:new', { message });
           io.to(memberRooms).emit('conversation:updated', conversationUpdated);
+
+          await createMessageNotifications({
+            memberIds,
+            senderId: socket.data.auth.userId,
+            senderName: socket.data.auth.name,
+            message,
+          }).catch((error) => {
+            logger.error({ err: error }, 'Message notification creation failed');
+          });
         }
 
         ack({ ok: true, data: { message, duplicate } });

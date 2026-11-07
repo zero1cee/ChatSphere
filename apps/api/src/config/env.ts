@@ -42,6 +42,21 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+
+  S3_ENDPOINT: z
+    .url()
+    .default('http://localhost:9090')
+    .transform((value) => value.replace(/\/$/, '')),
+  S3_REGION: z.string().trim().min(1).default('us-east-1'),
+  S3_BUCKET: z.string().trim().min(1).default('chatsphere-attachments'),
+  S3_ACCESS_KEY_ID: z.string().trim().min(1).default('test'),
+  S3_SECRET_ACCESS_KEY: z.string().trim().min(1).default('test'),
+  S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  S3_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(3600),
+  UPLOAD_MAX_FILE_SIZE_MB: z.coerce.number().int().min(1).max(25).default(10),
 });
 
 const result = envSchema.safeParse(process.env);

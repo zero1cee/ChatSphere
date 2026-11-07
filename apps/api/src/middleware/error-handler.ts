@@ -20,6 +20,17 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
     return;
   }
 
+  if (error instanceof Error && error.name === 'MulterError') {
+    const uploadError = error as Error & { code?: string };
+    const message =
+      uploadError.code === 'LIMIT_FILE_SIZE'
+        ? 'That file is too large. Choose a file up to 10 MB.'
+        : 'That file could not be uploaded.';
+
+    sendError(res, 400, 'UPLOAD_INVALID', message);
+    return;
+  }
+
   if (error instanceof ZodError) {
     const details = error.issues.map((issue) => ({
       path: issue.path.join('.'),

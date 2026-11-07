@@ -12,6 +12,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { isPrismaUniqueConstraintError } from '../../lib/prisma-errors.js';
+import { createMembershipNotifications } from '../notifications/notifications.service.js';
 import { toConversationDTO } from './conversations.mapper.js';
 
 const publicUserSelect = {
@@ -40,6 +41,11 @@ const conversationInclude = {
       content: true,
       createdAt: true,
       deletedAt: true,
+      _count: {
+        select: {
+          attachments: true,
+        },
+      },
       sender: {
         select: {
           id: true,
@@ -315,6 +321,18 @@ export async function addConversationMembers(
     where: { id: conversationId },
     include: conversationInclude,
   });
+  const actor = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+
+  await createMembershipNotifications({
+    userIds: requested,
+    type: 'GROUP_ADDED',
+    conversationId,
+    conversationTitle: conversation.title || 'Group conversation',
+    actorName: actor?.name ?? 'A member',
+  });
 
   return toConversationDTO(conversation);
 }
@@ -369,6 +387,19 @@ export async function updateMemberRole(
     where: { id: conversationId },
     include: conversationInclude,
   });
+  const actor = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { name: true },
+  });
+
+  await createMembershipNotifications({
+    userIds: [targetUserId],
+    type: 'GROUP_ROLE_CHANGED',
+    conversationId,
+    conversationTitle: conversation.title || 'Group conversation',
+    actorName: actor?.name ?? 'A group owner',
+    role: input.role,
+  });
 
   return toConversationDTO(conversation);
 }
@@ -411,4 +442,16 @@ export async function removeConversationMember(
   }
 
   await prisma.conversationMember.delete({ where: { id: target.id } });
+  const actor = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { name: true },
+  });
+
+  await createMembershipNotifications({
+    userIds: [targetUserId],
+    type: 'GROUP_REMOVED',
+    conversationId,
+    conversationTitle: membership.conversation.title || 'Group conversation',
+    actorName: actor?.name ?? 'A group admin',
+  });
 }

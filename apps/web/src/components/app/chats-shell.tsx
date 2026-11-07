@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import { ConversationList } from '@/components/app/conversation-list';
 import { NewConversationDialog } from '@/components/app/new-conversation-dialog';
+import { NotificationsMenu } from '@/components/app/notifications-menu';
 import { UserAvatar } from '@/components/app/user-avatar';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -83,6 +84,7 @@ export function ChatsShell({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
           <div className="flex items-center gap-0.5">
+            <NotificationsMenu />
             <ThemeToggle />
             <Button asChild variant="ghost" size="icon" className="size-9 rounded-full">
               <Link href="/settings" aria-label="Settings">

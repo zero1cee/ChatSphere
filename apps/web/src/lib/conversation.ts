@@ -57,16 +57,18 @@ export function getConversationPreview(
     return getConversationSubtitle(conversation, currentUserId);
   }
 
-  const content =
-    lastMessage.deletedAt || !lastMessage.content
-      ? 'Message deleted'
-      : lastMessage.content.replace(/\s+/g, ' ').trim();
+  if (lastMessage.deletedAt) {
+    return 'Message deleted';
+  }
+
+  const content = lastMessage.content?.replace(/\s+/g, ' ').trim();
+  const preview = content || (lastMessage.attachmentCount > 0 ? 'Attachment' : 'Message');
 
   if (conversation.type === 'DIRECT') {
-    return content;
+    return preview;
   }
 
   return lastMessage.sender.id === currentUserId
-    ? `You: ${content}`
-    : `${lastMessage.sender.name}: ${content}`;
+    ? `You: ${preview}`
+    : `${lastMessage.sender.name}: ${preview}`;
 }

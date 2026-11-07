@@ -36,6 +36,7 @@ import {
 import { conversationKeys } from '@/features/conversations/queries';
 import { ApiError } from '@/lib/api-client';
 import { canManageGroup, getMemberRole, getOtherMember } from '@/lib/conversation';
+import { useSocket } from '@/providers/socket-provider';
 
 const roleLabel: Record<MemberRole, string> = {
   OWNER: 'Owner',
@@ -60,6 +61,7 @@ export function ConversationDetailsDialog({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { presence } = useSocket();
   const [title, setTitle] = useState(conversation.title ?? '');
   const detailKey = conversationKeys.detail(conversation.id);
   const isGroup = conversation.type === 'GROUP';
@@ -259,7 +261,11 @@ export function ConversationDetailsDialog({
 
                   return (
                     <li key={member.id} className="flex flex-wrap items-center gap-3 p-3">
-                      <UserAvatar name={member.user.name} size="sm" />
+                      <UserAvatar
+                        name={member.user.name}
+                        size="sm"
+                        online={presence[member.userId]?.online}
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           {member.user.name}

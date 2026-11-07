@@ -22,6 +22,10 @@ interface MemberRecord {
   userId: string;
   role: string;
   joinedAt: Date;
+  lastReadMessageId: string | null;
+  lastReadAt: Date | null;
+  lastDeliveredMessageId: string | null;
+  lastDeliveredAt: Date | null;
   user: PublicUserRecord;
 }
 
@@ -41,6 +45,9 @@ interface LastMessageRecord {
   content: string | null;
   createdAt: Date;
   deletedAt: Date | null;
+  _count: {
+    attachments: number;
+  };
   sender: {
     id: string;
     name: string;
@@ -59,6 +66,7 @@ function toMessagePreview(message: LastMessageRecord): MessagePreviewDTO {
     },
     createdAt: message.createdAt.toISOString(),
     deletedAt: message.deletedAt?.toISOString() ?? null,
+    attachmentCount: message._count.attachments,
   };
 }
 
@@ -68,6 +76,10 @@ function toConversationMemberDTO(member: MemberRecord): ConversationMemberDTO {
     userId: member.userId,
     role: member.role as MemberRole,
     joinedAt: member.joinedAt.toISOString(),
+    lastReadMessageId: member.lastReadMessageId,
+    lastReadAt: member.lastReadAt?.toISOString() ?? null,
+    lastDeliveredMessageId: member.lastDeliveredMessageId,
+    lastDeliveredAt: member.lastDeliveredAt?.toISOString() ?? null,
     user: toPublicUser(member.user),
   };
 }

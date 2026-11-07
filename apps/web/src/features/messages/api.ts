@@ -1,6 +1,6 @@
 import type { MessageDTO, MessageListData, MessageListMeta } from '@chatsphere/shared';
 
-import { apiRequestWithMeta } from '@/lib/api-client';
+import { apiRequest, apiRequestWithMeta } from '@/lib/api-client';
 
 export interface MessagePage {
   messages: MessageDTO[];
@@ -31,4 +31,40 @@ export async function fetchMessagePage(
     messages: payload.data.messages,
     meta: payload.meta ?? emptyMeta,
   };
+}
+
+export function editMessageRequest(
+  messageId: string,
+  content: string,
+): Promise<{ message: MessageDTO }> {
+  return apiRequest<{ message: MessageDTO }>(`/api/messages/${messageId}`, {
+    method: 'PATCH',
+    body: { content },
+  });
+}
+
+export function deleteMessageRequest(messageId: string): Promise<{ message: MessageDTO }> {
+  return apiRequest<{ message: MessageDTO }>(`/api/messages/${messageId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function addReactionRequest(
+  messageId: string,
+  emoji: string,
+): Promise<{ message: MessageDTO }> {
+  return apiRequest<{ message: MessageDTO }>(`/api/messages/${messageId}/reactions`, {
+    method: 'POST',
+    body: { emoji },
+  });
+}
+
+export function removeReactionRequest(
+  messageId: string,
+  emoji: string,
+): Promise<{ message: MessageDTO }> {
+  return apiRequest<{ message: MessageDTO }>(
+    `/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+    { method: 'DELETE' },
+  );
 }

@@ -11,11 +11,13 @@ import { Button } from '@/components/ui/button';
 import { useConversation } from '@/features/conversations/queries';
 import { ApiError } from '@/lib/api-client';
 import { getConversationSubtitle, getConversationTitle, getOtherMember } from '@/lib/conversation';
+import { useSocket } from '@/providers/socket-provider';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function ConversationView({ conversationId }: { conversationId: string }) {
   const user = useAuthStore((state) => state.user);
   const conversationQuery = useConversation(conversationId);
+  const { presence } = useSocket();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   if (!user) {
@@ -67,9 +69,18 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
   const conversation = conversationQuery.data;
   const title = getConversationTitle(conversation, user.id);
-  const subtitle = getConversationSubtitle(conversation, user.id);
+  const baseSubtitle = getConversationSubtitle(conversation, user.id);
   const other = conversation.type === 'DIRECT' ? getOtherMember(conversation, user.id) : null;
   const avatarName = other?.user.name ?? title;
+  const onlineCount = conversation.members.filter(
+    (member) => member.userId !== user.id && presence[member.userId]?.online,
+  ).length;
+  const subtitle =
+    conversation.type === 'DIRECT' && other && presence[other.userId]?.online
+      ? `${baseSubtitle} · Online`
+      : conversation.type === 'GROUP' && onlineCount > 0
+        ? `${baseSubtitle} · ${onlineCount} online`
+        : baseSubtitle;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-canvas">

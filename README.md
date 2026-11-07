@@ -8,10 +8,10 @@ This is a portfolio project built as a production-style modular monolith — not
 app. It is being built in verified milestones, with the architecture and trade-offs documented as
 it grows.
 
-> **Status: Phase 5 — real-time messaging.** Authenticated Socket.IO delivery, persisted messages,
-> cursor-based history, optimistic sending, deduplication, and reconnect sync are implemented and
-> verified. Typing, presence, receipts, attachments, and notifications are next. See the
-> [Phase 5 verification log](docs/phase-5-messaging.md) for the commands and actual results.
+> **Status: Phase 6 — realtime collaboration.** Typing, presence, delivery/read receipts, message
+> actions, replies, reactions, S3-backed attachments, and in-app notifications are implemented and
+> verified. Production hardening, full realtime E2E coverage, and deployment are next. See the
+> [Phase 6 verification log](docs/phase-6-realtime-collaboration.md) for commands and results.
 
 ## What works today
 
@@ -25,25 +25,34 @@ it grows.
   admin, and member roles; add/remove members; ownership transfer; per-user hide for direct chats;
   owner-only group deletion.
 - **Messaging:** authenticated Socket.IO connections, persisted sends with acknowledgements,
-  client-generated idempotency keys, optimistic message bubbles with retry, realtime conversation
-  previews, infinite-scroll history, and reconnect catch-up.
-- **Workspace UI:** responsive conversation list, message thread and composer, new-conversation flow
-  (direct and group), group details and permission-aware controls, settings, and empty states.
+  client-generated idempotency keys, optimistic bubbles with retry, realtime previews, infinite-scroll
+  history, and reconnect catch-up.
+- **Realtime collaboration:** typing indicators, online/last-seen presence for co-members,
+  delivered/read receipts, and live notification badges.
+- **Message actions:** edit, delete (with group moderator support), emoji reactions, and threaded
+  replies with quoted previews.
+- **Attachments:** image/PDF/text uploads with MIME and size validation, up to five files per
+  message, S3-compatible storage, and short-lived presigned download URLs.
+- **Notifications:** in-app message notifications, group membership/role notices, unread counts, and
+  mark-read flows.
+- **Workspace UI:** responsive conversation list, message thread and composer, mentions of presence,
+  typing, read receipts and attachment previews, new-conversation flow, group details, settings, and
+  notification center.
 - Express 5 API with validated environment, structured logging, CORS, Helmet, request IDs,
   consistent JSON envelopes, and liveness/readiness checks.
 - PostgreSQL 18 schema managed by Prisma 7, including users, sessions, verification tokens,
   conversations, memberships, and the complete future messaging model.
 - Docker Compose for PostgreSQL, Redis, Mailpit, and an S3-compatible local store (S3Mock).
-- **Tests:** 42 Vitest unit, integration, and realtime tests and a Playwright authentication E2E
+- **Tests:** 52 Vitest unit, integration, and realtime tests and a Playwright authentication E2E
   test.
 - GitHub Actions CI for install, Prisma generation, migrations, linting, type checking, tests, and
   builds. Playwright E2E is local-only for now.
 
 ## Not built yet
 
-Typing indicators, presence, delivery/read receipts, message editing/deletion, attachments and
-avatar uploads, notifications, the Redis Socket.IO adapter, Docker production images, and
-deployment. These arrive in later phases, each with its own tests.
+Avatar uploads, email/push notification delivery, message search, audit/moderation history,
+attachment malware scanning and orphan cleanup, the Redis Socket.IO adapter and multi-instance
+presence, production Docker images, and deployment. These arrive in later phases, each with tests.
 
 ## Screenshots
 
@@ -77,6 +86,7 @@ deployment. These arrive in later phases, each with its own tests.
 | Auth        | Argon2id (`@node-rs/argon2`), `jose` JWT access tokens, rotating refresh sessions                       |
 | Data        | PostgreSQL 18.6, Prisma 7.10.1 with `@prisma/adapter-pg`                                                |
 | Realtime    | Socket.IO 4.8.4 (server) + socket.io-client 4.8.4                                                       |
+| Storage     | S3-compatible object storage (S3Mock locally, S3/R2 in production), AWS SDK v3, presigned URLs          |
 | Local infra | Docker Compose, Redis 8.10, Mailpit, Adobe S3Mock                                                       |
 | Testing     | Vitest 5, Supertest, Playwright 1.64                                                                    |
 | Tooling     | pnpm 12.16.1, Biome 2.6.5, GitHub Actions                                                               |
@@ -215,7 +225,7 @@ Open:
 ## Testing
 
 ```bash
-pnpm test       # 42 Vitest tests: unit, auth, users, conversations, and sockets
+pnpm test       # 52 Vitest tests: unit, auth, users, conversations, actions, attachments, sockets
 pnpm test:e2e   # Playwright: register → verify → sign in → sign out
 ```
 
@@ -231,9 +241,9 @@ pnpm --filter @chatsphere/web exec playwright install chromium
 ```
 
 The E2E test reads the real verification email through the Mailpit API, so Mailpit must be running.
-It is not yet wired into GitHub Actions; the CI job runs the 42 Vitest tests. The two-browser
-messaging flow is verified manually; the Socket.IO transport and delivery rules are covered by the
-realtime suite.
+It is not yet wired into GitHub Actions; the CI job runs the 52 Vitest tests. The two-browser
+realtime flows are verified manually; Socket.IO delivery, presence, typing, receipts, actions,
+attachments, and notifications are covered by the API and realtime suites.
 
 ## Technical decisions
 
@@ -251,8 +261,18 @@ realtime suite.
   unique index. These are enforced in PostgreSQL, not only in application code.
 - **Messages are fanned out to user rooms, not stale conversation rooms.** Every send resolves the
   current member list, so a removed member stops receiving messages immediately even if their socket
-  is still open. Authorized conversation rooms are still joined for the upcoming typing and read
-  features.
+  is still open. Authorized conversation rooms carry ephemeral typing events.
+- **Read receipts are positional, not per-message fan-out.** `ConversationMember.lastReadAt` and
+  `lastDeliveredAt` drive the UI status; the latest read message is also written to `MessageRead`.
+  This keeps receipt costs bounded as history grows.
+- **Presence is in-memory for now.** The server tracks socket ownership per user and broadcasts only
+  to co-members. Redis-backed presence arrives with the multi-instance phase.
+- **Attachments are uploaded before send.** Files are validated against an allowlist, stored in S3,
+  and claimed by the sender inside the message transaction. Downloads use short-lived presigned
+  URLs.
+- **Notifications are in-app and event-driven.** Message and group-membership notifications are
+  persisted per recipient, pushed over Socket.IO, and marked read by the notification center or an
+  open conversation.
 - **Client-generated message IDs make sends idempotent.** A unique `(senderId, clientMessageId)`
   constraint plus an ack/retry path prevents duplicate messages after reconnects or timeouts.
 - **History uses a `(createdAt, id)` cursor.** Pages remain stable while new messages arrive, and
@@ -264,8 +284,9 @@ realtime suite.
   demotes the existing owner and promotes the target in one transaction.
 - **Direct conversations are hidden per user, not deleted.** `ConversationMember.hiddenAt` keeps the
   other participant's history intact and starting the chat again reopens the same conversation.
-- **Rate limits are in-memory for now.** They are correct for a single API instance; Redis-backed
-  limits arrive with the scaling phase, before horizontal deployment is described as ready.
+- **Rate limits and presence are in-memory for now.** They are correct for a single API instance;
+  Redis-backed limits, presence, and the Socket.IO adapter arrive with the scaling phase before
+  horizontal deployment is described as ready.
 
 ## Database
 
@@ -289,7 +310,7 @@ pnpm db:studio       # inspect data
 3. ~~Phase 3 — authentication, verification, sessions, reset, protected routes, first tests~~ ✅
 4. ~~Phase 4 — users, profiles, direct and group conversations~~ ✅
 5. ~~Phase 5 — real-time messaging with Socket.IO~~ ✅
-6. Phase 6 — typing, presence, receipts, attachments, notifications, message actions
+6. ~~Phase 6 — typing, presence, receipts, attachments, notifications, message actions~~ ✅
 7. Phase 7 — full realtime/E2E suites and failure hardening
 8. Phase 8 — Redis, Docker production images, deployment, documentation, screenshots
 

@@ -13,6 +13,10 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
+# Prisma needs a valid URL to generate its client during image build.
+# This placeholder is never used to connect to a database.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/chatsphere"
+
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api

@@ -13,8 +13,8 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
-ARG NEXT_PUBLIC_API_URL="https://chatsphere-api-qc44.onrender.com"
-ARG NEXT_PUBLIC_SOCKET_URL="https://chatsphere-api-qc44.onrender.com"
+ARG NEXT_PUBLIC_API_URL=""
+ARG NEXT_PUBLIC_SOCKET_URL=""
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -27,7 +27,13 @@ FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
+
+RUN apk add --no-cache nginx
+
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
-EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
+COPY docker/nginx.render.conf /etc/nginx/http.d/default.conf
+
+EXPOSE 10000
+
+CMD ["sh", "-c", "PORT=3000 HOSTNAME=127.0.0.1 node apps/web/server.js & exec nginx -g 'daemon off;'"]

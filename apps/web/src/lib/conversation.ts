@@ -46,3 +46,27 @@ export function getMemberRole(
 export function canManageGroup(role: ConversationMemberDTO['role'] | undefined): boolean {
   return role === 'OWNER' || role === 'ADMIN';
 }
+
+export function getConversationPreview(
+  conversation: ConversationDTO,
+  currentUserId: string,
+): string {
+  const lastMessage = conversation.lastMessage;
+
+  if (!lastMessage) {
+    return getConversationSubtitle(conversation, currentUserId);
+  }
+
+  const content =
+    lastMessage.deletedAt || !lastMessage.content
+      ? 'Message deleted'
+      : lastMessage.content.replace(/\s+/g, ' ').trim();
+
+  if (conversation.type === 'DIRECT') {
+    return content;
+  }
+
+  return lastMessage.sender.id === currentUserId
+    ? `You: ${content}`
+    : `${lastMessage.sender.name}: ${content}`;
+}

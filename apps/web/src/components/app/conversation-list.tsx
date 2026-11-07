@@ -5,7 +5,8 @@ import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 
 import { UserAvatar } from '@/components/app/user-avatar';
-import { getConversationSubtitle, getConversationTitle, getOtherMember } from '@/lib/conversation';
+import { getConversationPreview, getConversationTitle, getOtherMember } from '@/lib/conversation';
+import { formatConversationTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 
 function ConversationItem({
@@ -18,8 +19,10 @@ function ConversationItem({
   active: boolean;
 }) {
   const title = getConversationTitle(conversation, currentUserId);
+  const preview = getConversationPreview(conversation, currentUserId);
   const other = conversation.type === 'DIRECT' ? getOtherMember(conversation, currentUserId) : null;
   const avatarName = other?.user.name ?? title;
+  const lastMessage = conversation.lastMessage;
 
   return (
     <Link
@@ -34,15 +37,17 @@ function ConversationItem({
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-medium">{title}</span>
-          {conversation.type === 'GROUP' ? (
+          {lastMessage ? (
+            <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+              {formatConversationTime(lastMessage.createdAt)}
+            </span>
+          ) : conversation.type === 'GROUP' ? (
             <span className="shrink-0 text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground">
               Group
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-          {getConversationSubtitle(conversation, currentUserId)}
-        </span>
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preview}</span>
       </span>
     </Link>
   );

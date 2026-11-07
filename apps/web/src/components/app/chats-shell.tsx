@@ -15,7 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useConversations } from '@/features/conversations/queries';
 import { logoutRequest } from '@/lib/api-client';
-import { getConversationSubtitle, getConversationTitle } from '@/lib/conversation';
+import {
+  getConversationPreview,
+  getConversationSubtitle,
+  getConversationTitle,
+} from '@/lib/conversation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -43,6 +47,8 @@ export function ChatsShell({ children }: { children: React.ReactNode }) {
     const haystack = [
       getConversationTitle(conversation, user.id),
       getConversationSubtitle(conversation, user.id),
+      getConversationPreview(conversation, user.id),
+      conversation.lastMessage?.sender.name ?? '',
       ...conversation.members.flatMap((member) => [member.user.name, member.user.username]),
     ]
       .join(' ')

@@ -115,8 +115,8 @@ export default function HomePage() {
                 Less noise. More signal.
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/65">
-                Create an account, verify your email, and your workspace is ready. The conversation
-                layer is the next milestone.
+                Create an account, verify your email, and start a conversation. Direct messages,
+                groups, and live delivery are ready.
               </p>
               <Link
                 href="/register"

@@ -89,7 +89,10 @@ export function refreshSession(): Promise<AuthSessionData | null> {
   return refreshInFlight;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function requestEnvelope<T, TMeta>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiSuccess<T, TMeta>> {
   const { body, headers, skipAuthRefresh, method = 'GET' } = options;
 
   const execute = async (): Promise<Response> => {
@@ -119,7 +122,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (response.status === 204) {
-    return undefined as T;
+    return {
+      data: undefined as T,
+      requestId: response.headers.get('x-request-id') ?? 'unknown',
+    };
   }
 
   const payload = (await response.json().catch(() => null)) as ApiSuccess<T> | ApiErrorBody | null;
@@ -135,11 +141,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     );
   }
 
-  return (payload as ApiSuccess<T>).data;
+  return payload as ApiSuccess<T, TMeta>;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await requestEnvelope<T, never>(path, options)).data;
 }
 
 export function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   return request<T>(path, options);
+}
+
+export function apiRequestWithMeta<T, TMeta>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiSuccess<T, TMeta>> {
+  return requestEnvelope<T, TMeta>(path, options);
 }
 
 export function loginRequest(input: LoginInput): Promise<AuthSessionData> {

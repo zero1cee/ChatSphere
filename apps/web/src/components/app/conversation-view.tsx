@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { ConversationDetailsDialog } from '@/components/app/conversation-details-dialog';
+import { MessageThread } from '@/components/app/message-thread';
 import { UserAvatar } from '@/components/app/user-avatar';
 import { Button } from '@/components/ui/button';
 import { useConversation } from '@/features/conversations/queries';
@@ -100,52 +101,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
         </Button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
-          <div className="flex -space-x-2">
-            {conversation.members.slice(0, 4).map((member) => (
-              <UserAvatar
-                key={member.id}
-                name={member.user.name}
-                size="lg"
-                className="ring-4 ring-canvas"
-              />
-            ))}
-            {conversation.members.length > 4 ? (
-              <span className="grid size-12 place-items-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-4 ring-canvas">
-                +{conversation.members.length - 4}
-              </span>
-            ) : null}
-          </div>
-
-          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            {conversation.type === 'GROUP' ? 'Group conversation' : 'Direct conversation'}
-          </p>
-          <h2 className="mt-2 max-w-xl font-display text-4xl leading-tight tracking-[-0.02em] text-balance">
-            {conversation.type === 'GROUP'
-              ? `Welcome to ${title}.`
-              : `A new conversation with ${title}.`}
-          </h2>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-            {conversation.type === 'GROUP'
-              ? `${conversation.members.length} people are in this group. Messaging and real-time delivery are the next milestone.`
-              : `This is the beginning of your conversation. Messaging and real-time delivery are the next milestone.`}
-          </p>
-
-          {other?.user.bio ? (
-            <p className="mt-4 max-w-md rounded-xl border border-border/70 bg-background/60 px-4 py-3 text-sm italic text-muted-foreground">
-              “{other.user.bio}”
-            </p>
-          ) : null}
-        </div>
-
-        <div className="shrink-0 border-t border-border/70 bg-background p-3 sm:p-4">
-          <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-            <MessagesSquare className="size-4 shrink-0" aria-hidden="true" />
-            <span>Messaging is next. This conversation is ready for it.</span>
-          </div>
-        </div>
-      </div>
+      <MessageThread key={conversation.id} conversation={conversation} currentUserId={user.id} />
 
       <ConversationDetailsDialog
         conversation={conversation}

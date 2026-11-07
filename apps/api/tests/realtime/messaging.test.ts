@@ -2,12 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type {
-  Ack,
-  ClientToServerEvents,
-  MessageDTO,
-  ServerToClientEvents,
-} from '@chatsphere/shared';
+import type { ClientToServerEvents, MessageDTO, ServerToClientEvents } from '@chatsphere/shared';
 import { io as createSocketClient, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';

@@ -28,8 +28,8 @@ export default function ChatsPage() {
         Pick a conversation.
       </h1>
       <p className="relative mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Choose a conversation from the sidebar, or start a new one. Messaging and real-time delivery
-        are the next milestone.
+        Choose a conversation from the sidebar, or start a new one. Your messages arrive in real
+        time.
       </p>
     </div>
   );
